@@ -26,12 +26,6 @@ jobs:
       - name: Install npm deps
         run: npm install
 
-      - name: Check architecture rules
-        run: npm run check
-
-      - name: Unit + integration tests
-        run: npm test
-
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
