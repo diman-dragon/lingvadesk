@@ -1,9 +1,0 @@
-{
-	"appId": "com.example.lingocards",
-	"appName": "LingvaDesk",
-	"webDir": "www",
-	"android": {
-		"allowMixedContent": false,
-		"minWebViewVersion": 80
-	}
-}

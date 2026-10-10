@@ -17,7 +17,7 @@
 - Нативный SQLite (Java), без storage-разрешений
 
 ## Сборка APK через GitHub Actions
-1. Запушьте репозиторий в GitHub (содержимое папки `lingocards/` — в корень).
+1. Запушьте репозиторий в GitHub (содержимое папки `lingvadesk/` — в корень).
 2. **Actions → Android build → последний запуск → Artifacts → `LingvaDesk-debug-apk`** (запускается на push, PR и вручную).
 3. Установка **поверх** предыдущей версии, без удаления — см. `docs/UPDATES.md`.
 
@@ -26,14 +26,14 @@ Wrapper-jar не нужен: Gradle ставится в CI.
 
 ### Подписанный релиз (по желанию)
 Создайте keystore один раз:
-`keytool -genkeypair -v -keystore release.jks -alias lingocards -keyalg RSA -keysize 2048 -validity 10000`
+`keytool -genkeypair -v -keystore release.jks -alias lingvadesk -keyalg RSA -keysize 2048 -validity 10000`
 и добавьте секреты в **Settings → Secrets and variables → Actions**:
 
 | Secret | Значение |
 |---|---|
 | `KEYSTORE_BASE64` | `base64 -w0 release.jks` |
 | `KEYSTORE_PASSWORD` | пароль хранилища |
-| `KEY_ALIAS` | `lingocards` |
+| `KEY_ALIAS` | `lingvadesk` |
 | `KEY_PASSWORD` | пароль ключа |
 
 Затем `git tag v1.0.0 && git push --tags` — CI соберёт подписанный APK и приложит к GitHub Release.
