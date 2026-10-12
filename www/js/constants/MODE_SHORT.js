@@ -1,1 +1,1 @@
-export const MODE_SHORT = { learn: 'Обучение', seq: 'По порядку', shuffle: 'Вперемешку', srs: 'Повторение' };
+export const MODE_SHORT = { srs: 'Интервалы', learn: 'Обучение', review: 'Повторение' };

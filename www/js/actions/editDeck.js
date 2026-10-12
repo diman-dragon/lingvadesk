@@ -1,7 +1,7 @@
 import { state } from '../state/appState.js';
-import getDeckWithCourse from '../repo/getDeckWithCourse.js';
+import getDeckWithProject from '../repo/getDeckWithProject.js';
 import go from '../nav/go.js';
 export default async function editDeck() {
-  const deck = await getDeckWithCourse(state.nav.id);
-  return go('deckForm', { id: deck.id, courseId: deck.language_id });
+  const deck = await getDeckWithProject(state.nav.id);
+  return go('deckForm', { id: deck.id, projectId: deck.language_id });
 }

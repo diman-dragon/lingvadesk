@@ -1,5 +1,5 @@
-/** Какая вкладка подсвечена на каждом экране; study — без панели (полноэкранный режим). */
+/** Подсветка вкладки; настройки открываются из шапки и во вкладках не числятся. */
 export const TAB_OF = {
-  today: 'today', library: 'library', course: 'library', deck: 'library',
-  courseForm: 'library', deckForm: 'library', cardForm: 'library', settings: 'settings'
+  library: 'library', project: 'library', deck: 'library', projectForm: 'library', deckForm: 'library', cardForm: 'library',
+  study: 'study', session: 'study'
 };

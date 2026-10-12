@@ -1,6 +1,6 @@
 import mergeNewCards from './mergeNewCards.js';
-/** Сохранённый порядок без удалённых карточек; в seq/shuffle новые дописываются в конец. */
+/** Сохранённая очередь без удалённых карточек; в «Повторении» новые карточки дописываются в конец. */
 export default function restoreOrder(order, map, mode) {
   const alive = order.filter(id => map.has(id));
-  return mode === 'learn' ? alive : mergeNewCards(alive, [...map.keys()]);
+  return mode === 'review' ? mergeNewCards(alive, [...map.keys()]) : alive;
 }

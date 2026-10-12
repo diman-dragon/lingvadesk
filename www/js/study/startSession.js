@@ -1,23 +1,26 @@
-import listCards from '../repo/listCards.js';
+import listCardsInScope from '../repo/listCardsInScope.js';
+import sessionKey from './sessionKey.js';
 import loadSavedState from './loadSavedState.js';
 import restoreOrder from './restoreOrder.js';
-import introCount from './introCount.js';
 import buildOrder from './buildOrder.js';
 import saveState from './saveState.js';
 /**
- * session = { deck, mode, map(id→card), order[], pos, intro }.
- * SRS-очередь собирается заново; завершённая пачка «Обучения» заменяется следующей.
+ * session = { scope, mode, shuffle, key, map(id→карточка), order[], pos, phase, total }.
+ * srs собирается заново; learn и review продолжаются с сохранённого места.
  */
-export default async function startSession(deck, mode) {
-  const cards = await listCards(deck.id);
+export default async function startSession(scope, mode, shuffle) {
+  const cards = await listCardsInScope(scope);
   const map = new Map(cards.map(c => [c.id, c]));
-  const saved = mode === 'srs' ? null : await loadSavedState(deck.id, mode);
-  const resume = saved && (mode !== 'learn' || saved.pos < saved.order.length);
-  const order = resume ? restoreOrder(saved.order, map, mode) : buildOrder(mode, cards);
+  const key = sessionKey(scope, mode, shuffle);
+  const saved = mode === 'srs' ? null : await loadSavedState(key);
+  const kept = saved ? restoreOrder(saved.order, map, mode) : [];
+  const resume = kept.length > 0;
+  const order = resume ? kept : buildOrder(mode, cards, shuffle);
   const session = {
-    deck, mode, map, order,
-    intro: resume ? Math.min(saved.intro, order.length) : introCount(mode, order),
-    pos: resume ? Math.min(saved.pos, order.length) : 0
+    scope, mode, shuffle, key, map, order,
+    phase: resume ? saved.phase : (mode === 'learn' && order.length ? 'intro' : 'quiz'),
+    total: resume ? Math.max(saved.total, order.length) : order.length,
+    pos: resume ? Math.min(saved.pos, order.length - 1) : 0
   };
   await saveState(session);
   return session;

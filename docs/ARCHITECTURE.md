@@ -1,99 +1,68 @@
-# Архитектура
+# Архитектура LingvaDesk
 
-**Термины.** Курс → Колода → Карточка. В БД курс хранится в таблице `languages` (имя сохранено ради обновления поверх без миграции); в коде и интерфейсе — «курс» (`course`). Ключ `language` в файле `deck.json` — это курс.
+**Модель.** Проект (язык, даты — что угодно) → Колода → Карточка. В БД проект хранится в таблице `languages`
+(имя сохранено ради обновления поверх без миграции), в коде и интерфейсе — «проект» (`project`).
 
-## Структура
+## Экраны и навигация
+| Экран | Где | Назначение |
+|---|---|---|
+| `library` | вкладка «Библиотека» | проекты; **импорт и экспорт всей библиотеки** — только здесь |
+| `project` → `deck` | библиотека | колоды проекта → карточки колоды (карточки живут только здесь) |
+| `projectForm`, `deckForm`, `cardForm` | библиотека | создать / изменить / удалить / перенести |
+| `study` | вкладка «Учёба» | область (вся библиотека / проект / колода), статистика, 3 режима |
+| `session` | вкладка «Учёба» | сама учёба: интервальное повторение, обучение, повторение |
+| `settings` | значок ⚙️ в шапке | 4 страницы: Вид · Учёба · Данные · О нас |
+
+- **Нижняя панель** (Библиотека · Учёба) всегда на экране. Настройки — в шапке.
+- **Без прокрутки.** Экран — flex-колонка на всю высоту (`100dvh`). Длинные списки выводятся страницами по высоте области
+  (`pager/*`, размеры элементов — `constants/PAGER` и CSS `.item`/`.gtile`), страницы листаются свайпом и точками.
+  Формы и карточки компактны; на низких экранах (`≤700px`, `≤600px`) CSS ужимается.
+- **«Назад».** Каждый переход — шаг истории (`nav/go` → `pushState`). Системная «Назад» возвращает на шаг назад до библиотеки;
+  страж истории (`nav/installBackGuard`, `events/handlePopState`) не даёт выйти из приложения.
+- **Кольцо свайпов.** Библиотека → Учёба → Настройки → Библиотека. Свайп листает страницы по кругу; за краем последней страницы
+  верхнеуровневого экрана — переход к соседнему (`nav/swipeNavigate`, `nav/switchRing`). Внутри проекта/колоды страницы
+  замыкаются сами на себя. В сессии учёбы, на формах свайп по области отключён.
+- **Карточки по кругу.** Свайп по карточке: влево — следующая, вправо — предыдущая, после последней — первая (`study/cyclePos`).
+
+## Учёба (`study/`)
+- Режимы: `srs` — интервальное повторение (просроченные карточки области); `learn` — обучение: пачка из 10 новых слов,
+  знакомство (обе стороны) → проверка с оценками; `review` — простое повторение: все карточки по кругу без оценок,
+  по порядку или вперемешку (настройка `shuffle`).
+- Сессия `{scope, mode, shuffle, key, map, order, pos, phase, total}`; область — `'all' | 'p:<id>' | 'd:<id>'` (`repo/scopeClause`).
+  Оценённая карточка уходит из очереди, «Снова» — в конец. Позиция хранится в таблице `settings` по ключу
+  `session:<область>:<режим>` (SRS каждый раз собирается заново).
+- Формулы `srs/nextSrs`: again → 10 минут; good/hard/easy → интервалы SM-2; ease ≥ 1.3. Подпись «когда вернётся» — `srs/previewLabel`.
+- Переворот — CSS 3D (`components/flipFaces`, `dom/toggleFlip`), без перерисовки; сколько угодно раз.
+
+## Структура кода
 ```
 www/js/
-  main.js → boot.js            точка входа
-  constants/  state/  util/  dom/
-  native/     обёртки над плагинами (dbQuery, dbRun, dbBatch, dbFirst, safOpen, safSave, backupCreate, backupRestore, ttsSpeak)
-  repo/       по одному SQL-запросу на файл
-  settings/   loadPrefs, savePref, setSetting, applyPrefs, resolveTheme
-  srs/        nextSrs, nextInterval, nextEase, previewLabel
-  study/      startSession, buildOrder, mergeNewCards, loadSavedState, saveState, currentCard, movePos,
-              restartSession, gradeCard, studyStep, openStudy, showGrades, autoSpeak,
-              restoreOrder, introCount, isIntro, progressOf
-  deckio/     parseDeck, isValidCard, normalizeCard, findOrCreateLanguage, saveParsedDeck, importDeckFromFile,
-              buildDeckJson, exportDeckToFile
-  backup/     createBackup, restoreBackup
-  tts/        speakText
-  components/ мелкие HTML-генераторы (button, row, header, navItem, faceBox …)
-  views/      экраны (today, library, course, deck, study, settings, courseForm, deckForm, cardForm) + index.js
-  nav/        go (history.pushState), goBack, parentOf, render (экран + нижнее меню + анимация)
-  gestures/   onPointerDown/Move/Up/Cancel, flyOut, springBack, consumeSuppress, swipeState — свайпы карточки
-  actions/    по одному действию на файл + index.js
-  events/     dispatch (единая точка data-act/data-on), bindEvents, handlePopState (кнопка «Назад»), watchSystemTheme
-
-android/app/src/main/java/com/example/flashcards/
-  core/    AtomicPlugin, Task, Cancelled, ReadStream/ReadFile/WriteFile/CopyFile, Encode/DecodeBase64, JsonToArgs/Strings
-  db/      DbHelper, Schema, CreateSchema, DbHolder, GetDb, CloseDb, DbFile, DeleteSidecars, RowToJson,
-           QueryRows, RunSql, RunBatch, Db{Query,Run,Batch}Plugin
-  saf/     OpenableIntent, PickedUri, DisplayName, ReadUri, WriteUri, SafOpenPlugin, SafSavePlugin
-  backup/  Fcbak, BuildManifest, BuildFcbak, ZipPut, ReadFcbak, ParsedFcbak, CheckManifest, IsValidDb,
-           MakeSafetyCopy, SwapDb, RollbackDb, RestoreDb, BackupCreatePlugin, BackupRestorePlugin
-  tts/     TtsHolder, TtsInit, TtsSay, TtsStop, TtsSpeakPlugin, TtsStopPlugin
-  PluginList, MainActivity
+  main.js → boot.js        точка входа
+  constants/ state/ util/ dom/
+  native/                  обёртки над плагинами (db*, saf*, backup*, ttsSpeak, ttsStop)
+  repo/                    по одному SQL-запросу на файл
+  settings/                loadPrefs, savePref, setSetting, getSetting, applyPrefs, resolveTheme
+  srs/                     nextSrs, nextInterval, nextEase, previewLabel, isNewCard
+  study/                   startSession, buildOrder, restoreOrder, cyclePos, gradeCard, startQuiz, restartSession, …
+  deckio/                  parseImport, parseDeck, parseLibrary, saveLibrary, importLibraryFromFile, exportLibraryToFile, …
+  pager/                   layoutPager, perPage, pageCount, setPage
+  nav/                     go, goBack, parentOf, render, swipeNavigate, switchRing, installBackGuard
+  gestures/                onPointer*, finishCardSwipe, finishAreaSwipe, flyOut, springBack, …
+  components/ views/       разметка
+  actions/                 по одному действию на файл + index.js
+  events/                  dispatch, bindEvents, handlePopState, onResize
+android/…/java/com/example/lingocards/   плагины Capacitor (core, db, saf, backup, tts)
 ```
-Мост: `Capacitor.registerPlugin('<Имя>').exec({...})`. Имена: DbQuery, DbRun, DbBatch, SafOpen, SafSave,
-BackupCreate, BackupRestore, TtsSpeak, TtsStop.
+Правила кода — `docs/CONVENTIONS.md`; форматы — `docs/FORMATS.md`; обновление поверх — `docs/UPDATES.md`.
 
-## Модель данных (SQLite `lingocards.db`, user_version = 1)
-| Таблица | Назначение |
-|---|---|
-| `languages(id, name UNIQUE, tts)` | язык и BCP-47 код голоса |
-| `decks(id, language_id→languages, name, created)` | колоды (ON DELETE CASCADE) |
-| `cards(id, deck_id→decks, front, back, example, example_tr, ord, due, interval, ease, reps)` | карточки + SRS |
-| `deck_state(deck_id, mode, pos, order_json) PK(deck_id,mode)` | позиция и порядок (в т.ч. shuffle) |
-| `settings(key, value)` | тема, направление |
-
-WAL выключен → БД всегда один файл.
-
-## Обучение
-- `learn` («Обучение») — пачка из 10 новых карточек (`isNewCard`: reps=0, interval=0, due=0). Порядок = [знакомство ×N, проверка ×N]:
-  в знакомстве обе стороны, пример и озвучка, без оценок; в проверке — обычный переворот и 4 оценки («Снова» возвращает карточку в конец).
-  В `deck_state.order_json` хранится `{order, intro}`; завершённая пачка заменяется следующей.
-- `seq` — по `ord`; `shuffle` — порядок создаётся один раз и хранится в `order_json` (продолжение после перезапуска); новые карточки дописываются в конец (`mergeNewCards`).
-- `srs` — очередь карточек с `due <= now`, собирается заново каждую сессию; «Снова» возвращает карточку в конец.
-- `nextSrs` (упрощённый SM-2, 4 оценки): `again` → `reps=0, interval=0, ease−0.2`, повтор через 10 минут и возврат в конец текущей очереди;
-  новая карточка: `hard/good` → 1 день, `easy` → 4; вторая: `hard` 3, `good` 6, `easy` 8 дней;
-  далее `interval×m`, где `m` = 1.2 (hard) / ease (good) / ease×1.3 (easy), минимум `interval+1`;
-  `hard` → `ease−0.15`, `easy` → `ease+0.15`, ease ≥ 1.3. Оценки обновляют SRS во всех режимах.
-- Направление: `fwd` — вопрос `front`, ответ `back`; `rev` — наоборот. Озвучиваются `front` и `example` голосом языка.
+## Данные (SQLite `lingocards.db`, схема v1)
+`languages` (проекты), `decks`, `cards` (+ SRS: `due`, `interval`, `ease`, `reps`), `settings` (настройки, область учёбы, позиции сессий),
+`deck_state` (устарела, не используется; оставлена ради совместимости резервных копий). WAL выключен: БД — один файл.
 
 ## Backup / restore
-`BuildFcbak`: ZIP {manifest.json, app.db}. `RestoreDb`: запись во временный файл → `IsValidDb` (integrity_check + 5 таблиц) →
-`MakeSafetyCopy` (`files/backups/pre-restore-<ts>.db`) → `SwapDb` (замена + повторная проверка) → при любой ошибке `RollbackDb`.
+`BuildFcbak`: ZIP {manifest.json, app.db}. `RestoreDb`: проверка (`IsValidDb`) → защитная копия → замена → проверка → при ошибке откат.
 
 ## Тесты
-`npm test` (Node 22, `node:sqlite`): `nextSrs.test.js` (алгоритм), `deckio.test.js` (импорт/экспорт, круговой тест),
-`study.test.js` (позиции режимов, shuffle, новые карточки, SRS-очередь, счётчики, каскады). Мост Capacitor подменяется
-`test/helpers/installBridge.js`; схема берётся из `Schema.java`, поэтому тесты работают с реальной схемой приложения.
-
-## Интерфейс
-- **Навигация:** нижнее меню (Сегодня · Библиотека · Настройки) на экранах верхнего уровня (`constants/TABS`, `TAB_OF`);
-  на экране обучения меню скрыто. Системная кнопка «Назад» работает через `history.pushState` / `popstate`.
-- **Сегодня:** статистика (к повторению / всего / выучено), колоды к повторению с запуском SRS одним тапом.
-- **Переворот карточки:** обе стороны всегда в DOM (`components/flipFaces`), переворот — CSS 3D через класс `flipped`
-  (`actions/flip` → `dom/toggleFlip`, без перерисовки, иначе анимация не сработает). Переворачивать можно сколько угодно раз;
-  оценки появляются при первом открытии ответа и остаются. Новая карточка въезжает анимацией `card-in`.
-  Под кнопками оценок — подпись, когда карточка вернётся (`srs/previewLabel`).
-- **Настройки** (`state.prefs`, таблица `settings`): тема (системная/светлая/тёмная), размер текста, анимации, направление,
-  автоозвучка. Одна универсальная операция `actions/setPref` (`data-key`, `data-v`); применяются через атрибуты
-  `data-theme/font/anim` на `<html>`. Там же: backup/restore, сброс прогресса, о приложении.
-
-## Цвета и иконка
-- Светлая тема «Бумага»: тёплый кремовый фон `#f3eee3`, чернильный текст, бирюзовый акцент `#0b8f7e → #19b894`.
-- Тёмная тема **AMOLED**: чистый `#000`, мятный неон `#35e0b8 → #8af5dc`, глубина — тонкие рамки вместо теней.
-- Токены — в начале `www/css/style.css` (`:root` и `:root[data-theme=dark]`), тема 'auto' разрешается в JS (`settings/resolveTheme`).
-- Иконка: `assets/icon.svg` (исходник), `assets/icon-512.png`; Android — adaptive-вектор (`drawable/ic_launcher_*.xml`,
-  включая монохромный слой для тем Android 13+) и PNG для старых устройств (`mipmap-*`).
-
-## CRUD и библиотека
-- Каждая сущность редактируется на своём экране-форме (`courseForm`, `deckForm`, `cardForm`): создать, изменить, удалить; колоду можно перенести в другой курс, карточку — в другую колоду.
-  Кнопка «Назад»/«Отмена»/«Сохранить» идут по истории браузера (`nav/goBack`), без истории — на родителя (`nav/parentOf`).
-- `components/entry` рисует элемент библиотеки списком (`navItem`) или сеткой (`navTile`) по настройке `layout`; одна и та же настройка действует для курсов, колод и карточек.
-
-## Жесты
-Свайп по карточке: влево — следующая (`actions/skip`), вправо — предыдущая (`actions/prev`, анимация `card-back`); порог 80 px, меньше — карточка возвращается.
-Клик, порождённый свайпом, гасится (`gestures/consumeSuppress`); кнопки внутри карточки жест не начинают; вертикальное движение — прокрутка.
+`npm test` (Node 22, `node:sqlite`): алгоритм SRS, сессии (круговое листание, фазы, области), импорт/экспорт библиотеки,
+сквозной UI-сценарий (экраны, CRUD, страницы, кольцо свайпов, «Назад», жесты), версия и подпись, иконки.
+Мост Capacitor подменяет `test/helpers/installBridge.js`, схема берётся из `Schema.java`.

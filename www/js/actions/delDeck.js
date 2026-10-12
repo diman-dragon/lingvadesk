@@ -7,5 +7,5 @@ export default async function delDeck() {
   await deleteDeck(state.nav.id);
   state.session = null;
   toast('Колода удалена');
-  return go('course', { id: state.nav.courseId });
+  return go('project', { id: state.nav.projectId });
 }

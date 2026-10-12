@@ -1,6 +1,6 @@
 import button from '../components/button.js';
 import row from '../components/row.js';
-/** Знакомство: назад / дальше, без оценок. */
+/** Знакомство: листание по кругу и переход к проверке. */
 export default function studyIntroControls() {
-  return row(button({ act: 'prev', cls: 'icon', label: '‹' }) + button({ act: 'skip', cls: 'p wide', label: 'Дальше' }), 'nav-row');
+  return row(button({ act: 'prev', cls: 'icon', label: '‹' }) + button({ act: 'startQuiz', cls: 'p wide', label: 'К проверке' }) + button({ act: 'skip', cls: 'icon', label: '›' }), 'nav-row');
 }

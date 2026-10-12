@@ -2,109 +2,118 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import installBridge from './helpers/installBridge.js';
 import deckFile from './helpers/deckFile.js';
-import importDeckFromFile from '../www/js/deckio/importDeckFromFile.js';
-import getDeckWithCourse from '../www/js/repo/getDeckWithCourse.js';
-import listCourses from '../www/js/repo/listCourses.js';
-import listDecksOfCourse from '../www/js/repo/listDecksOfCourse.js';
+import importLibraryFromFile from '../www/js/deckio/importLibraryFromFile.js';
 import insertCards from '../www/js/repo/insertCards.js';
-import deleteCourse from '../www/js/repo/deleteCourse.js';
+import insertDeck from '../www/js/repo/insertDeck.js';
+import insertProject from '../www/js/repo/insertProject.js';
+import listCardsInScope from '../www/js/repo/listCardsInScope.js';
+import getScopeStats from '../www/js/repo/getScopeStats.js';
+import listProjects from '../www/js/repo/listProjects.js';
+import listAllDecks from '../www/js/repo/listAllDecks.js';
+import deleteProject from '../www/js/repo/deleteProject.js';
+import validScope from '../www/js/study/validScope.js';
 import startSession from '../www/js/study/startSession.js';
+import startQuiz from '../www/js/study/startQuiz.js';
 import currentCard from '../www/js/study/currentCard.js';
-import movePos from '../www/js/study/movePos.js';
+import cyclePos from '../www/js/study/cyclePos.js';
 import gradeCard from '../www/js/study/gradeCard.js';
+import restartSession from '../www/js/study/restartSession.js';
+import isIntro from '../www/js/study/isIntro.js';
+import progressOf from '../www/js/study/progressOf.js';
 
 const bridge = installBridge();
-let deck, ids;
+let projectId, deckId;
 
 test.beforeEach(async () => {
   bridge.reset();
   bridge.io.picked = deckFile();
-  ids = await importDeckFromFile();
-  deck = await getDeckWithCourse(ids.deckId);
+  await importLibraryFromFile();
+  projectId = (await listProjects())[0].id;
+  deckId = (await listAllDecks())[0].id;
 });
 
-test('seq: позиция сохраняется и восстанавливается', async () => {
-  const s = await startSession(deck, 'seq');
-  await movePos(s, 4);
-  const again = await startSession(deck, 'seq');
-  assert.equal(again.pos, 4);
-  assert.deepEqual(again.order, s.order);
+test('область учёбы: вся библиотека / проект / колода; у карточек есть голос и подписи', async () => {
+  const p2 = await insertProject('Даты', 'ru-RU');
+  const d2 = await insertDeck(p2, 'XX век');
+  await insertCards(d2, [{ front: '1917', back: 'революция' }, { front: '1945', back: 'победа' }]);
+  assert.equal((await listCardsInScope('all')).length, 10);
+  assert.equal((await listCardsInScope(`p:${projectId}`)).length, 8);
+  assert.equal((await listCardsInScope(`d:${d2}`)).length, 2);
+  const c = (await listCardsInScope(`d:${d2}`))[0];
+  assert.deepEqual([c.tts, c.pname, c.dname], ['ru-RU', 'Даты', 'XX век']);
+  const s = await getScopeStats(`p:${projectId}`);
+  assert.deepEqual([s.total, s.due, s.fresh, s.mature], [8, 8, 8, 0]);
+  await deleteProject(p2);
+  assert.equal(validScope(`d:${d2}`, await listProjects(), await listAllDecks()), 'all');
+  assert.equal(validScope(`p:${projectId}`, await listProjects(), await listAllDecks()), `p:${projectId}`);
 });
 
-test('shuffle: порядок и позиция переживают «перезапуск»', async () => {
-  const s = await startSession(deck, 'shuffle');
-  await movePos(s, 3);
-  const again = await startSession(deck, 'shuffle');
-  assert.deepEqual(again.order, s.order);
-  assert.equal(again.pos, 3);
-});
-
-test('режимы хранят позиции независимо', async () => {
-  const seq = await startSession(deck, 'seq');
-  await movePos(seq, 2);
-  assert.equal((await startSession(deck, 'shuffle')).pos, 0);
-});
-
-test('новые карточки дописываются в конец сохранённого порядка', async () => {
-  const s = await startSession(deck, 'shuffle');
-  await insertCards(deck.id, [{ front: 'new', back: 'новый' }], 8);
-  const again = await startSession(deck, 'shuffle');
-  assert.equal(again.order.length, s.order.length + 1);
-  assert.deepEqual(again.order.slice(0, s.order.length), s.order);
-});
-
-test('srs: good убирает карточку из очереди, again возвращает в конец и назначает +10 мин', async () => {
-  const s = await startSession(deck, 'srs');
+test('повторение: листание по кругу в обе стороны', async () => {
+  const s = await startSession('all', 'review', 'off');
   assert.equal(s.order.length, 8);
+  await cyclePos(s, -1);                               // перед первой — последняя
+  assert.equal(s.pos, 7);
+  await cyclePos(s, 1);                                // после последней — первая
+  assert.equal(s.pos, 0);
+  await cyclePos(s, 1); await cyclePos(s, 1);
+  assert.equal(s.pos, 2);
+});
+
+test('повторение: позиция и порядок сохраняются, «вперемешку» хранится отдельно', async () => {
+  const s = await startSession('all', 'review', 'on');
+  await cyclePos(s, 1); await cyclePos(s, 1); await cyclePos(s, 1);
+  const again = await startSession('all', 'review', 'on');
+  assert.deepEqual([again.pos, again.order], [3, s.order]);
+  assert.equal((await startSession('all', 'review', 'off')).pos, 0);
+});
+
+test('повторение: новые карточки дописываются в конец сохранённого порядка', async () => {
+  const s = await startSession('all', 'review', 'on');
+  await insertCards(deckId, [{ front: 'new', back: 'новый' }]);
+  const again = await startSession('all', 'review', 'on');
+  assert.equal(again.order.length, 9);
+  assert.deepEqual(again.order.slice(0, 8), s.order);
+});
+
+test('интервальное повторение: оценка убирает карточку, «Снова» — в конец и +10 минут', async () => {
+  const s = await startSession('all', 'srs', 'off');
+  assert.deepEqual([s.order.length, s.total, s.phase], [8, 8, 'quiz']);
   await gradeCard(s, 'good');
-  assert.equal(s.order.length, 8);
-  const c = currentCard(s);
-  const before = Date.now();
+  assert.equal(s.order.length, 7);
+  const c = currentCard(s), before = Date.now();
   await gradeCard(s, 'again');
-  assert.equal(s.order.length, 9);
+  assert.equal(s.order.length, 7);
   assert.equal(s.order.at(-1), c.id);
   assert.ok(c.due >= before + 9.9 * 60000 && c.due <= Date.now() + 10.1 * 60000);
-  const next = await startSession(deck, 'srs');
-  assert.equal(next.order.length, 6); // обе оценённые карточки ушли: good — на завтра, again — через 10 минут
+  assert.equal((await startSession('all', 'srs', 'off')).order.length, 6);   // good → завтра, again → через 10 минут
+  for (let i = 0; i < 6; i++) await gradeCard(s, 'easy');
+  assert.equal(s.order.length, 1);                     // осталась «Снова»
+  assert.equal(progressOf(s).text, 'Осталось 1 из 8');
 });
 
-test('счётчики «к повторению» и каскадное удаление языка', async () => {
-  const [lang] = await listCourses();
-  assert.equal(lang.due, 8);
-  const [d] = await listDecksOfCourse(ids.languageId);
-  assert.deepEqual([d.n, d.due], [8, 8]);
-  await deleteCourse(ids.languageId);
-  assert.equal((await listCourses()).length, 0);
+test('обучение: знакомство → проверка, фаза и позиция сохраняются; пустая пачка заменяется следующей', async () => {
+  const s = await startSession('all', 'learn', 'off');
+  assert.deepEqual([s.order.length, s.phase, isIntro(s)], [8, 'intro', true]);
+  assert.match(progressOf(s).text, /Знакомство · 1 \/ 8/);
+  await cyclePos(s, -1);
+  assert.equal(s.pos, 7);                              // знакомство тоже по кругу
+  await startQuiz(s);
+  assert.deepEqual([s.phase, s.pos, isIntro(s)], ['quiz', 0, false]);
+  await cyclePos(s, 1);
+  const back = await startSession('all', 'learn', 'off');
+  assert.deepEqual([back.phase, back.pos, back.order], ['quiz', 1, s.order]);
+  for (let i = 0; i < 8; i++) await gradeCard(back, 'good');
+  assert.equal(back.order.length, 0);
+  const empty = await startSession('all', 'learn', 'off');
+  assert.equal(empty.order.length, 0);                 // новых карточек больше нет
+  await insertCards(deckId, [{ front: 'a', back: 'б' }, { front: 'c', back: 'д' }]);
+  const more = await startSession('all', 'learn', 'off');
+  assert.deepEqual([more.order.length, more.phase, more.pos], [2, 'intro', 0]);
 });
 
-test('learn: пачка = знакомство + проверка, позиция и фаза переживают перезапуск', async () => {
-  const s = await startSession(deck, 'learn');
-  assert.equal(s.order.length, 16);
-  assert.equal(s.intro, 8);
-  assert.deepEqual(s.order.slice(0, 8), s.order.slice(8));
-  await movePos(s, 3);
-  const again = await startSession(deck, 'learn');
-  assert.deepEqual([again.pos, again.intro], [3, 8]);
-  assert.deepEqual(again.order, s.order);
-});
-
-test('learn: после оценки карточка перестаёт быть новой; завершённая пачка заменяется следующей', async () => {
-  const s = await startSession(deck, 'learn');
-  await movePos(s, 8);                       // пропустить знакомство
-  for (let i = 0; i < 8; i++) await gradeCard(s, 'good');
-  assert.equal(s.pos, 16);
-  const next = await startSession(deck, 'learn');
-  assert.equal(next.order.length, 0);        // новых слов больше нет
-  await insertCards(deck.id, [{ front: 'a', back: 'б' }, { front: 'c', back: 'д' }], 8);
-  const more = await startSession(deck, 'learn');
-  assert.deepEqual([more.order.length, more.intro, more.pos], [4, 2, 0]);
-});
-
-test('learn: «Снова» в проверке возвращает карточку в конец пачки', async () => {
-  const s = await startSession(deck, 'learn');
-  await movePos(s, 8);
-  const id = currentCard(s).id;
-  await gradeCard(s, 'again');
-  assert.equal(s.order.length, 17);
-  assert.equal(s.order.at(-1), id);
+test('restart: следующая пачка «Обучения», свежая очередь SRS, новое перемешивание', async () => {
+  const s = await startSession('all', 'srs', 'off');
+  await gradeCard(s, 'good'); await gradeCard(s, 'good');
+  await restartSession(s);
+  assert.deepEqual([s.order.length, s.total, s.pos], [6, 6, 0]);
 });

@@ -5,10 +5,10 @@ import insertDeck from '../repo/insertDeck.js';
 import updateDeck from '../repo/updateDeck.js';
 import goBack from '../nav/goBack.js';
 export default async function saveDeck() {
-  const name = readField('name'), courseId = +readField('course'), id = state.nav.id;
+  const name = readField('name'), projectId = +readField('project'), id = state.nav.id;
   if (!name) return toast('Введите название колоды');
-  if (!courseId) return toast('Сначала создайте курс');
-  await (id ? updateDeck(id, name, courseId) : insertDeck(courseId, name));
+  if (!projectId) return toast('Сначала создайте проект');
+  await (id ? updateDeck(id, name, projectId) : insertDeck(projectId, name));
   toast('Сохранено');
   return goBack();
 }

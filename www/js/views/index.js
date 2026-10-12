@@ -1,13 +1,13 @@
-import todayView from './todayView.js';
 import libraryView from './libraryView.js';
-import courseView from './courseView.js';
+import projectView from './projectView.js';
 import deckView from './deckView.js';
-import studyView from './studyView.js';
+import studyHubView from './studyHubView.js';
+import sessionView from './sessionView.js';
 import settingsView from './settingsView.js';
-import courseFormView from './courseFormView.js';
+import projectFormView from './projectFormView.js';
 import deckFormView from './deckFormView.js';
 import cardFormView from './cardFormView.js';
 export default {
-  today: todayView, library: libraryView, course: courseView, deck: deckView, study: studyView, settings: settingsView,
-  courseForm: courseFormView, deckForm: deckFormView, cardForm: cardFormView
+  library: libraryView, project: projectView, deck: deckView, study: studyHubView, session: sessionView, settings: settingsView,
+  projectForm: projectFormView, deckForm: deckFormView, cardForm: cardFormView
 };

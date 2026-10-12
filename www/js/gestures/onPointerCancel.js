@@ -1,7 +1,7 @@
 import { swipe } from './swipeState.js';
 import springBack from './springBack.js';
 export default function onPointerCancel() {
-  const { el, moved } = swipe;
+  const { el, moved, kind } = swipe;
   swipe.el = null;
-  if (el && moved) springBack(el);
+  if (el && moved && kind === 'card') springBack(el);
 }

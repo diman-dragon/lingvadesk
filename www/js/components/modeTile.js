@@ -2,9 +2,9 @@ import { MODES } from '../constants/MODES.js';
 import { MODE_META } from '../constants/MODE_META.js';
 import esc from '../util/esc.js';
 import button from './button.js';
-/** Крупная плитка режима обучения; hint — продолжение / число к повторению. */
-export default function modeTile(mode, hint) {
+/** Плитка режима учёбы; count — сколько карточек доступно в выбранной области. */
+export default function modeTile(mode, count) {
   const m = MODE_META[mode];
-  const label = `<span class="ti">${m.icon}</span><span><b>${esc(MODES[mode])}</b><small>${esc(m.hint + (hint ? ` · ${hint}` : ''))}</small></span>`;
+  const label = `<span class="ti">${m.icon}</span><span class="tt"><b>${esc(MODES[mode])}</b><small>${esc(m.hint)}</small></span><span class="badge">${count}</span>`;
   return button({ act: 'startStudy', cls: 'tile', label, data: { mode } });
 }

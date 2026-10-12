@@ -27,6 +27,11 @@ for (const p of js) {
   }
 }
 
+// каждый модуль должен где-то импортироваться (main.js — точка входа)
+const imported = new Set();
+for (const p of js) for (const m of readFileSync(p, 'utf8').matchAll(/from '(\.[^']+)'/g)) imported.add(resolve(dirname(p), m[1]));
+for (const p of js) if (!p.endsWith('/main.js') && !imported.has(resolve(p))) bad.push(`${p}: не используется (никто не импортирует)`);
+
 const java = walk('android/app/src/main/java').filter(f => f.endsWith('.java'));
 for (const p of java) {
   const s = readFileSync(p, 'utf8');

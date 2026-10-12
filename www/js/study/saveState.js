@@ -1,5 +1,4 @@
-import saveDeckState from '../repo/saveDeckState.js';
-export default function saveState({ deck, mode, pos, order, intro }) {
-  const payload = mode === 'learn' ? { order, intro } : order;
-  return saveDeckState(deck.id, mode, pos, JSON.stringify(payload));
+import setSetting from '../settings/setSetting.js';
+export default function saveState({ key, order, pos, phase, total }) {
+  return setSetting(key, JSON.stringify({ order, pos, phase, total }));
 }

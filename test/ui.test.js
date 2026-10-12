@@ -8,304 +8,406 @@ const app = { innerHTML: '', addEventListener() {} };
 const toastEl = { textContent: '', classList: { add() {}, remove() {} } };
 const flipEl = { cls: new Set(), classList: { toggle: c => (flipEl.cls.has(c) ? (flipEl.cls.delete(c), false) : (flipEl.cls.add(c), true)) } };
 const fields = {};
-const answers = [];
 globalThis.document = {
   documentElement: { dataset: {} },
   querySelector: () => flipEl,
   getElementById: id => id === 'app' ? app : id === 'toast' ? toastEl : (fields[id] ??= { value: '', innerHTML: '' })
 };
-globalThis.prompt = () => answers.shift();
 globalThis.confirm = () => true;
 const bridge = installBridge();
 
+const imp = p => import(`../www/js/${p}`).then(m => m.default);
 const { default: boot } = await import('../www/js/boot.js');
-const { default: dispatch } = await import('../www/js/events/dispatch.js');
-const { default: handlePopState } = await import('../www/js/events/handlePopState.js');
 const { state } = await import('../www/js/state/appState.js');
-const { default: loadPrefs } = await import('../www/js/settings/loadPrefs.js');
-const { default: listCards } = await import('../www/js/repo/listCards.js');
-const { default: listCourses } = await import('../www/js/repo/listCourses.js');
-const { default: insertDeck } = await import('../www/js/repo/insertDeck.js');
-const { default: onPointerDown } = await import('../www/js/gestures/onPointerDown.js');
-const { default: onPointerMove } = await import('../www/js/gestures/onPointerMove.js');
-const { default: onPointerUp } = await import('../www/js/gestures/onPointerUp.js');
-const { default: consumeSuppress } = await import('../www/js/gestures/consumeSuppress.js');
+const dispatch = await imp('events/dispatch.js');
+const handlePopState = await imp('events/handlePopState.js');
+const installBackGuard = await imp('nav/installBackGuard.js');
+const swipeNavigate = await imp('nav/swipeNavigate.js');
+const loadPrefs = await imp('settings/loadPrefs.js');
+const listProjects = await imp('repo/listProjects.js');
+const listCards = await imp('repo/listCards.js');
+const listAllDecks = await imp('repo/listAllDecks.js');
+const insertProject = await imp('repo/insertProject.js');
+const insertDeck = await imp('repo/insertDeck.js');
+const setSetting = await imp('settings/setSetting.js');
+const onPointerDown = await imp('gestures/onPointerDown.js');
+const onPointerMove = await imp('gestures/onPointerMove.js');
+const onPointerUp = await imp('gestures/onPointerUp.js');
+const consumeSuppress = await imp('gestures/consumeSuppress.js');
 const { APP_VERSION } = await import('../www/js/constants/APP_VERSION.js');
-const setFields = obj => Object.entries(obj).forEach(([k, v]) => (fields[k] = { value: String(v), innerHTML: '' }));
 
-const press = (act, data = {}, el = {}) =>
-  dispatch({ type: 'click', target: { closest: () => ({ dataset: { act, ...data }, ...el }) } });
-const change = (act, el) =>
-  dispatch({ type: 'change', target: { closest: () => ({ dataset: { act, on: 'change' }, ...el }) } });
+/** Всё, что видит пользователь: экран + текущая страница списка + точки. */
+const page = () => app.innerHTML + (app.innerHTML.includes('id="pager"') ? fields.pager.innerHTML + fields.dots.innerHTML : '');
+const press = (act, data = {}, el = {}) => dispatch({ type: 'click', target: { closest: () => ({ dataset: { act, ...data }, ...el }) } });
+const change = (act, el) => dispatch({ type: 'change', target: { closest: () => ({ dataset: { act, on: 'change' }, ...el }) } });
+const setFields = obj => Object.entries(obj).forEach(([k, v]) => (fields[k] = { value: String(v), innerHTML: '' }));
+const count = (re, s = page()) => (s.match(new RegExp(re.source, 'g')) || []).length;
+const setHeight = h => { fields.pager = { innerHTML: '', clientHeight: h }; };
 
 test.before(() => bridge.reset());
 
-test('запуск: экран «Сегодня» с пустым состоянием и нижним меню', async () => {
+test('запуск: библиотека, две вкладки внизу, настройки в шапке', async () => {
   await boot();
-  assert.match(app.innerHTML, /Сегодня/);
-  assert.match(app.innerHTML, /Пока нет карточек/);
-  for (const t of ['Сегодня', 'Библиотека', 'Настройки']) assert.match(app.innerHTML, new RegExp(`<span>${t}</span>`));
-  assert.match(app.innerHTML, /class="tab on"/);
+  assert.equal(state.nav.v, 'library');
+  assert.match(page(), /Проектов пока нет/);
+  assert.match(page(), /<span>Библиотека<\/span>/);
+  assert.match(page(), /<span>Учёба<\/span>/);
+  assert.doesNotMatch(page(), /Сегодня|Настройки<\/span>/);
+  assert.equal(count(/class="tab on"/), 1);
+  assert.match(app.innerHTML, /<header>.*data-act="goSettings"/);
+  for (const t of ['\\+ Проект', 'Импорт', 'Экспорт']) assert.match(page(), new RegExp(t));
 });
 
-test('импорт deck.json открывает колоду: hero, режимы, карточки', async () => {
-  bridge.io.picked = deckFile();
-  await press('importDeck');
-  assert.match(app.innerHTML, /Basics/);
-  assert.match(app.innerHTML, /8 карточек/);
-  for (const m of ['Обучение', 'Последовательно', 'Перемешать', 'Повторение']) assert.match(app.innerHTML, new RegExp(m));
-  assert.match(app.innerHTML, /яблоко/);
-});
-
-test('библиотека и язык: счётчики и бейджи', async () => {
+test('вкладка «Учёба» без карточек: понятная заглушка, панель на месте', async () => {
+  await press('goStudy');
+  assert.match(page(), /Здесь пока нет карточек/);
+  assert.match(app.innerHTML, /class="tabs"/);
   await press('goLibrary');
-  assert.match(app.innerHTML, /English/);
-  assert.match(app.innerHTML, /колод: 1/);
-  assert.match(app.innerHTML, /<span class="badge">8<\/span>/);
-  await press('goCourse', { id: 1 });
-  assert.match(app.innerHTML, /карточек: 8 · к повторению: 8/);
 });
 
-test('«Сегодня»: статистика и колоды к повторению, старт SRS одним тапом', async () => {
-  await press('goToday');
-  assert.match(app.innerHTML, /<b>8<\/b><span>к повторению/);
-  assert.match(app.innerHTML, /Пора повторить/);
-  await press('studyDeck', { id: 1 });
-  assert.equal(state.session.mode, 'srs');
-  assert.match(app.innerHTML, /осталось 8/);
-  assert.doesNotMatch(app.innerHTML, /class="tabs"/); // обучение — без нижнего меню
+test('импорт на самом верхнем уровне: проект → колода → карточки', async () => {
+  bridge.io.picked = deckFile();
+  await press('importLibrary');
+  assert.match(toastEl.textContent, /проектов 1, колод 1, новых карточек 8/);
+  assert.match(page(), /English/);
+  assert.match(page(), /колод: 1/);
+  assert.match(page(), /<span class="badge">8<\/span>/);
+  await press('importLibrary');
+  assert.match(toastEl.textContent, /новых карточек 0/);       // повторный импорт не дублирует
 });
 
-test('обучение: переворот туда-обратно сколько угодно раз, 4 оценки с интервалами', async () => {
-  await press('leaveStudy', { id: 1 });
-  await press('startStudy', { mode: 'seq' });
+test('цепочка проект → колода → карточки; карточки видны только в библиотеке', async () => {
+  const pid = (await listProjects())[0].id;
+  await press('goProject', { id: pid });
+  assert.match(page(), /Basics/);
+  assert.match(page(), /карточек: 8 · к повторению: 8/);
+  assert.match(page(), /🎓 Учить/);
+  await press('goDeck', { id: 1 });
+  assert.match(page(), /apple/);
+  assert.match(page(), /English · 8 карточек · 8 к повторению/);
+  assert.match(page(), /\+ Карточка/);
+  assert.match(app.innerHTML, /data-act="goSettings"/);
+  await press('goStudy');
+  assert.doesNotMatch(page(), /apple|яблоко/);                  // на вкладке «Учёба» списка карточек нет
+});
+
+test('библиотека: список ⇄ сетка на всех уровнях', async () => {
+  await press('goLibrary');
+  assert.match(page(), /class="page "/);
+  assert.match(page(), /class="item"/);
+  await press('toggleLayout');
+  assert.match(page(), /class="page grid /);
+  assert.match(page(), /class="gtile"/);
+  await press('goProject', { id: 1 });
+  assert.match(page(), /class="gtile"/);
+  await press('goDeck', { id: 1 });
+  assert.match(page(), /class="gtile mini"/);
+  await press('toggleLayout');
+  assert.match(page(), /class="item"/);
+});
+
+test('учёба: область, статистика и три режима', async () => {
+  await press('goStudy');
+  assert.equal(count(/class="tab on"/), 1);
+  assert.match(page(), /Что учим/);
+  assert.match(page(), /<optgroup label="English"><option value="p:1">Весь проект<\/option><option value="d:1">Basics<\/option>/);
+  for (const t of ['Интервальное повторение', 'Обучение', 'Повторение', 'Порядок повторения', 'к повторению', 'новых', 'выучено']) assert.match(page(), new RegExp(t));
+  assert.equal(count(/data-act="startStudy"/), 3);
+  await change('setScope', { value: 'd:1' });
+  assert.equal(state.scope, 'd:1');
+  assert.match(page(), /<option value="d:1" selected>/);
+  await setSetting('scope', 'p:999');                           // область удалена
+  state.scope = 'p:999';
+  await press('goStudy');
+  assert.equal(state.scope, 'all');
+});
+
+test('интервальное повторение: оценки, прогресс, листание по кругу', async () => {
+  await press('startStudy', { mode: 'srs' });
+  assert.equal(state.nav.v, 'session');
+  assert.match(page(), /Осталось 8 из 8/);
+  assert.match(page(), /English · Basics/);
+  assert.match(app.innerHTML, /class="tabs"/);                   // нижняя панель не пропадает
+  assert.doesNotMatch(app.innerHTML, /<header>.*data-act="goSettings"/);
   assert.match(app.innerHTML, /class="flip" data-act="flip"/);
-  assert.match(app.innerHTML, /Нажмите, чтобы перевернуть/);
-  assert.match(app.innerHTML, /apple/);
   await press('flip');
   assert.ok(flipEl.cls.has('flipped'));
-  const controls = fields.controls.innerHTML;
-  for (const g of ['Снова', 'Трудно', 'Хорошо', 'Легко', 'Перевернуть']) assert.match(controls, new RegExp(g));
-  assert.match(controls, /<small>10 мин<\/small>/);
-  assert.match(controls, /<small>1 д<\/small>/);
-  for (let i = 0; i < 4; i++) { // обратно, снова вперёд, … — оценки остаются
-    await press('flip');
-    assert.equal(flipEl.cls.has('flipped'), i % 2 === 1);
-    assert.equal(state.revealed, true);
-  }
-  assert.equal(flipEl.cls.has('flipped'), true); // после 5 переворотов — оборот
-  await press('flip');
-  assert.equal(flipEl.cls.has('flipped'), false); // и снова лицо
+  const c = fields.controls.innerHTML;
+  for (const g of ['Снова', 'Трудно', 'Хорошо', 'Легко']) assert.match(c, new RegExp(g));
+  assert.doesNotMatch(c, /Перевернуть/);
+  assert.match(c, /<small>10 мин<\/small>/);
+  await press('flip'); await press('flip');
+  assert.equal(flipEl.cls.has('flipped'), true);
   await press('grade', { g: 'good' });
-  assert.match(app.innerHTML, /water/);
-  assert.match(app.innerHTML, /осталось 7/);
-  assert.match(app.innerHTML, /card-in/);
+  assert.match(page(), /Осталось 7 из 8/);
   assert.equal(state.revealed, false);
+  for (let i = 0; i < 7; i++) await press('skip');               // вперёд по кругу
+  assert.equal(state.session.pos, 0);
+  await press('prev');                                           // назад от первой — последняя
+  assert.equal(state.session.pos, 6);
+  assert.match(page(), /card-back/);
 });
 
-test('направление: настройка dir сохраняется и меняет вопрос', async () => {
+test('«Повторение»: без оценок, карточки по кругу, переворот туда-обратно', async () => {
+  await press('back');
+  assert.equal(state.nav.v, 'study');
+  await press('startStudy', { mode: 'review' });
+  assert.match(page(), /1 \/ 8/);
+  assert.match(page(), /Перевернуть/);
+  fields.controls = { innerHTML: 'без оценок' };
+  await press('flip'); await press('flip'); await press('flip');
+  assert.equal(fields.controls.innerHTML, 'без оценок');
+  assert.equal(count(/data-act="grade"/), 0);
+  await press('prev');
+  assert.equal(state.session.pos, 7);
+  await press('skip');
+  assert.equal(state.session.pos, 0);
   await press('toggleDir');
   assert.equal(state.prefs.dir, 'rev');
-  assert.match(app.innerHTML, /<div class="big">вода<\/div>/);
+  assert.match(page(), /<div class="big">яблоко<\/div>/);
   await press('toggleDir');
-  assert.equal(state.prefs.dir, 'fwd');
 });
 
-test('автоозвучка: при показе карточки произносится слово языка', async () => {
-  await press('setPref', { key: 'autoplay', v: 'on' });
-  bridge.io.spoken = null;
-  await press('skip');
-  assert.equal(bridge.io.spoken.lang, 'en-US');
-  assert.ok(bridge.io.spoken.text);
-  await press('speak', { t: 'hello' });
-  assert.equal(bridge.io.spoken.text, 'hello');
-  await press('setPref', { key: 'autoplay', v: 'off' });
-});
-
-test('режим «Обучение»: знакомство (обе стороны, без оценок) → проверка → следующая пачка', async () => {
-  await press('goDeck', { id: 1 });
-  assert.match(app.innerHTML, /новых/);
+test('«Обучение»: знакомство (обе стороны, без оценок) → проверка', async () => {
+  await press('back');
   await press('startStudy', { mode: 'learn' });
-  assert.match(app.innerHTML, /Знакомство · 1 \/ 7/);
-  assert.match(app.innerHTML, /class="flip flipped"/);
-  assert.match(app.innerHTML, /Дальше/);
-  assert.doesNotMatch(app.innerHTML, /data-act="grade"/);
-  for (let i = 0; i < 7; i++) await press('skip');
-  assert.doesNotMatch(app.innerHTML, /Знакомство/);
-  assert.match(app.innerHTML, /1 \/ 7 · осталось 7/);
-  assert.match(app.innerHTML, /Показать ответ/);
-  await press('flip');
-  await press('grade', { g: 'again' });
-  assert.match(app.innerHTML, /осталось 7/); // (7 новых: одну карточку уже оценили в seq) «Снова» вернула карточку в конец
+  assert.match(page(), /Знакомство · 1 \/ 7/);
+  assert.match(page(), /class="flip flipped"/);
+  assert.match(page(), /К проверке/);
+  assert.equal(count(/data-act="grade"/), 0);
+  await press('skip'); await press('prev'); await press('prev');
+  assert.equal(state.session.pos, 6);                           // знакомство тоже по кругу
+  await press('startQuiz');
+  assert.match(page(), /Осталось 7 из 7/);
+  assert.match(page(), /Показать ответ/);
+  assert.doesNotMatch(page(), /Знакомство/);
   for (let i = 0; i < 7; i++) { await press('flip'); await press('grade', { g: 'good' }); }
-  assert.match(app.innerHTML, /Пачка выучена/);
+  assert.match(page(), /Пачка выучена/);
   await press('restart');
-  assert.match(app.innerHTML, /Новых слов нет|Знакомство/);
+  assert.match(page(), /Новых слов нет/);
 });
 
-test('выход из обучения: экран колоды, позиция сохранена', async () => {
-  await press('leaveStudy', { id: 1 });
-  assert.match(app.innerHTML, /\+ Карточка/);
-  assert.match(app.innerHTML, /Карточки \(8\)/);
-  assert.match(app.innerHTML, /продолжить с \d/);
+test('автоозвучка и озвучка по голосу проекта', async () => {
+  await press('setPref', { key: 'autoplay', v: 'on' });
+  await press('back');
+  await press('startStudy', { mode: 'review' });
+  assert.deepEqual(bridge.io.spoken, { text: 'apple', lang: 'en-US' });
+  await press('speak', { t: 'hello', lang: 'de-DE' });
+  assert.deepEqual(bridge.io.spoken, { text: 'hello', lang: 'de-DE' });
+  await press('setPref', { key: 'autoplay', v: 'off' });
+  await press('back');
 });
 
-test('кнопка «Назад» возвращает на предыдущий экран; удалённый объект → библиотека', async () => {
-  await handlePopState({ state: { nav: { v: 'library' } } });
-  assert.match(app.innerHTML, /Библиотека/);
-  await handlePopState({ state: null });
-  assert.match(app.innerHTML, /Сегодня/);
-  state.session = null;
-  await handlePopState({ state: { nav: { v: 'study', id: 1 } } });
-  assert.match(app.innerHTML, /Сегодня/); // сессии нет — безопасный возврат
-  await handlePopState({ state: { nav: { v: 'course', id: 999 } } });
-  assert.match(app.innerHTML, /Библиотека/); // курс удалён — не падаем
-});
-
-test('настройки: группы, бренд, версия; тема/шрифт/анимации/вид применяются и сохраняются', async () => {
+test('«Назад» идёт шаг за шагом до библиотеки и дальше не выходит', async () => {
+  const stack = [{}]; // начальная запись истории
+  globalThis.history = {
+    get length() { return stack.length; },
+    pushState: s => stack.push(s), replaceState: s => (stack[stack.length - 1] = s)
+  };
+  const systemBack = async () => { stack.pop(); await handlePopState({ state: stack.at(-1) }); };
+  state.nav = { v: 'library' };
+  installBackGuard();
+  assert.deepEqual(stack.map(s => s.guard ? 'guard' : s.nav.v), ['guard', 'library']);
+  await press('goStudy');
   await press('goSettings');
-  for (const t of ['Внешний вид', 'Обучение', 'Данные', 'О приложении', 'Автоозвучка', 'Сбросить прогресс', 'AMOLED', 'Вид библиотеки', 'LingvaDesk', APP_VERSION.replace(/\./g, '\\.'), 'DataLaw'])
-    assert.match(app.innerHTML, new RegExp(t));
-  assert.match(app.innerHTML, /<svg class="logo"/);
-  for (const [key, v] of [['theme', 'dark'], ['font', 'l'], ['anim', 'off'], ['layout', 'grid']]) await press('setPref', { key, v });
-  assert.deepEqual(
-    [document.documentElement.dataset.theme, document.documentElement.dataset.font, document.documentElement.dataset.anim],
-    ['dark', 'l', 'off']);
-  Object.assign(state.prefs, { theme: 'auto', font: 'm', anim: 'on', layout: 'list' }); // «перезапуск»
-  await loadPrefs();
-  assert.deepEqual([state.prefs.theme, state.prefs.font, state.prefs.anim, state.prefs.layout], ['dark', 'l', 'off', 'grid']);
-  for (const [key, v] of [['anim', 'on'], ['layout', 'list']]) await press('setPref', { key, v });
+  await press('goLibrary');
+  await press('goProject', { id: 1 });
+  await press('goDeck', { id: 1 });
+  const lengthBefore = stack.length;
+  await press('goDeck', { id: 1 });                              // тот же экран — историю не растим
+  assert.equal(stack.length, lengthBefore);
+  for (const v of ['project', 'library', 'settings', 'study', 'library']) {
+    await systemBack();
+    assert.equal(state.nav.v, v);
+  }
+  for (let i = 0; i < 3; i++) {                                  // дальше библиотеки — никуда
+    await systemBack();
+    assert.equal(state.nav.v, 'library');
+    assert.equal(stack.at(-1).nav.v, 'library');
+    assert.match(page(), /Библиотека/);
+  }
+  delete globalThis.history;
 });
 
-test('backup и restore', async () => {
+test('страницы вместо прокрутки: число элементов зависит от высоты области, точки страниц', async () => {
+  for (let i = 1; i <= 10; i++) await insertProject(`Proj${String(i).padStart(2, '0')}`, 'en-US');
+  setHeight(222);                                                // (222+10)/(64+10) = 3 в странице
+  await press('goLibrary');
+  assert.equal(state.pager.per, 3);
+  assert.equal(count(/class="item"/), 3);
+  assert.equal(count(/class="dot( on)?"/), 4);                          // 11 проектов → 4 страницы
+  setHeight(500);
+  await press('goStudy'); await press('goLibrary');
+  assert.equal(state.pager.per, 6);
+  assert.equal(count(/class="dot( on)?"/), 2);
+  setHeight(222);
+  await press('goStudy'); await press('goLibrary');
+  await press('gotoPage', { i: 2 });
+  assert.equal(state.page, 2);
+  assert.match(page(), /class="dot on" data-act="gotoPage" data-i="2"/);
+  await press('toggleLayout');                                   // сетка: 2 колонки
+  setHeight(300);
+  await press('goStudy'); await press('goLibrary');
+  assert.equal(state.pager.per, 4);                              // 2 ряда × 2 колонки
+  assert.equal(count(/class="gtile"/), 4);
+  await press('toggleLayout');
+});
+
+test('свайпы по кругу: страницы → следующий экран → … → библиотека', async () => {
+  setHeight(222);
+  await press('goLibrary');
+  assert.equal(count(/class="dot( on)?"/), 4);
+  swipeNavigate(1); swipeNavigate(1); swipeNavigate(1);
+  assert.equal(state.page, 3);
+  await swipeNavigate(1);                                        // за последней страницей — «Учёба»
+  assert.equal(state.nav.v, 'study');
+  await swipeNavigate(-1);                                       // назад — на последнюю страницу библиотеки
+  assert.deepEqual([state.nav.v, state.page], ['library', 3]);
+  swipeNavigate(-1);
+  assert.equal(state.page, 2);
+  await press('goLibrary');
+  await swipeNavigate(-1);                                       // перед первой страницей — «Настройки»
+  assert.equal(state.nav.v, 'settings');
+  assert.equal(state.page, 3);                                   // последняя из четырёх страниц настроек
+  assert.match(page(), /LingvaDesk/);
+  assert.match(page(), new RegExp(`Версия ${APP_VERSION.replace(/\./g, '\\.')}`));
+  assert.match(page(), /DataLaw/);
+  await swipeNavigate(1);                                        // после последней — снова библиотека
+  assert.deepEqual([state.nav.v, state.page], ['library', 0]);
+});
+
+test('внутри проекта страницы листаются по кругу и не выходят на другие экраны', async () => {
+  const pid = (await listProjects())[0].id;
+  for (let i = 1; i <= 7; i++) await insertDeck(pid, `Deck${i}`);
+  setHeight(222);
+  await press('goProject', { id: pid });
+  assert.equal(count(/class="dot( on)?"/), 3);                          // 8 колод по 3
+  swipeNavigate(-1);                                             // перед первой — последняя
+  assert.equal(state.page, 2);
+  swipeNavigate(1);                                              // после последней — первая
+  assert.equal(state.page, 0);
+  assert.equal(state.nav.v, 'project');
+});
+
+test('настройки: четыре страницы, тема/шрифт/анимации/вид применяются и сохраняются', async () => {
+  setHeight(400);
+  await press('goSettings');
+  assert.equal(state.pager.fixed, true);
+  assert.match(page(), /class="dtab on" data-act="gotoPage" data-i="0">Вид</);
+  const all = state.pager.items.join('');
+  for (const t of ['Вид библиотеки', 'AMOLED', 'Автоозвучка', 'Порядок повторения', 'Сбросить прогресс', 'Резервная копия']) assert.match(all, new RegExp(t));
+  assert.match(app.innerHTML, /data-act="back"/);
+  assert.doesNotMatch(app.innerHTML, /<header>.*data-act="goSettings"/);
+  for (const [key, v] of [['theme', 'dark'], ['font', 'l'], ['anim', 'off'], ['layout', 'grid'], ['shuffle', 'on']]) await press('setPref', { key, v });
+  assert.deepEqual([document.documentElement.dataset.theme, document.documentElement.dataset.font, document.documentElement.dataset.anim], ['dark', 'l', 'off']);
+  Object.assign(state.prefs, { theme: 'auto', font: 'm', anim: 'on', layout: 'list', shuffle: 'off' });
+  await loadPrefs();
+  assert.deepEqual([state.prefs.theme, state.prefs.font, state.prefs.anim, state.prefs.layout, state.prefs.shuffle], ['dark', 'l', 'off', 'grid', 'on']);
+  for (const [key, v] of [['anim', 'on'], ['layout', 'list'], ['shuffle', 'off']]) await press('setPref', { key, v });
+});
+
+test('backup, восстановление, сброс прогресса, отмена SAF', async () => {
   await press('backup');
   assert.match(bridge.io.saved.name, /^lingvadesk-\d{8}-\d{4}\.fcbak$/);
   bridge.io.picked = { name: 'x.fcbak', data: 'AAAA' };
   await press('restore');
   assert.match(toastEl.textContent, /pre-restore-1\.db/);
-  assert.match(app.innerHTML, /Сегодня/);
-});
-
-test('сброс прогресса возвращает карточки к повторению', async () => {
-  await press('studyDeck', { id: 1 });
-  await press('flip');
-  await press('grade', { g: 'easy' });
-  await press('goSettings');
+  assert.equal(state.nav.v, 'library');
   await press('resetProgress');
   assert.match(toastEl.textContent, /Прогресс сброшен/);
-  await press('goToday');
-  assert.match(app.innerHTML, /<b>8<\/b><span>к повторению/);
-});
-
-test('отмена диалога SAF не показывает ошибку и не ломает экран', async () => {
-  await press('goLibrary');
   toastEl.textContent = '';
-  const before = app.innerHTML;
   bridge.io.picked = null;
-  await press('importDeck');
+  await press('importLibrary');
   assert.equal(toastEl.textContent, '');
-  assert.equal(app.innerHTML, before);
 });
 
-test('CRUD курс: создать, дубликат, открыть, изменить, удалить', async () => {
+test('экспорт всей библиотеки на верхнем уровне', async () => {
   await press('goLibrary');
-  await press('newCourse');
-  assert.match(app.innerHTML, /Новый курс/);
-  assert.match(app.innerHTML, /<datalist id="tts-codes">/);
-  setFields({ name: 'Deutsch', tts: 'de-DE' });
-  await press('saveCourse');
-  assert.match(app.innerHTML, /Deutsch/);
-  await press('newCourse');
-  setFields({ name: 'Deutsch', tts: 'de-DE' });
-  await press('saveCourse');
+  await press('exportLibrary');
+  assert.match(bridge.io.saved.name, /^lingvadesk-library-/);
+  assert.match(toastEl.textContent, /экспортирована/);
+});
+
+test('CRUD проект: создать, дубликат, изменить, удалить', async () => {
+  await press('goLibrary');
+  await press('newProject');
+  assert.match(page(), /Новый проект/);
+  assert.match(page(), /<datalist id="tts-codes">/);
+  assert.doesNotMatch(app.innerHTML, /<header>.*data-act="goSettings"/);
+  setFields({ name: 'Даты', tts: 'ru-RU' });
+  await press('saveProject');
+  assert.equal(state.nav.v, 'library');
+  await press('newProject');
+  setFields({ name: 'Даты', tts: 'ru-RU' });
+  await press('saveProject');
   assert.match(toastEl.textContent, /уже есть/);
   setFields({ name: '  ', tts: '' });
-  await press('saveCourse');
+  await press('saveProject');
   assert.match(toastEl.textContent, /Введите название/);
-  const de = (await listCourses()).find(c => c.name === 'Deutsch');
-  await press('goCourse', { id: de.id });
-  assert.match(app.innerHTML, /Колод нет/);
-  await press('editCourse');
-  assert.match(app.innerHTML, /value="Deutsch"/);
-  assert.match(app.innerHTML, /value="de-DE"/);
-  assert.match(app.innerHTML, /data-act="delCourse"/);
-  setFields({ name: 'Немецкий', tts: 'de-AT' });
-  await press('saveCourse');
-  assert.match(app.innerHTML, /Немецкий/);
-  await press('editCourse');
-  await press('delCourse');
-  assert.match(app.innerHTML, /Библиотека/);
-  assert.doesNotMatch(app.innerHTML, /Немецкий/);
+  const p = (await listProjects()).find(c => c.name === 'Даты');
+  await press('goProject', { id: p.id });
+  assert.match(page(), /Колод нет/);
+  await press('editProject');
+  assert.match(page(), /value="Даты"/);
+  setFields({ name: 'Хронология', tts: 'ru-RU' });
+  await press('saveProject');
+  assert.equal(state.nav.v, 'project');
+  assert.match(page(), /Хронология/);
+  await press('editProject');
+  await press('delProject');
+  assert.equal(state.nav.v, 'library');
+  assert.doesNotMatch(page(), /Хронология/);
 });
 
-test('CRUD колода: создать в курсе, изменить, перенести в другой курс, удалить', async () => {
-  await press('goLibrary');
-  await press('newCourse');
-  setFields({ name: 'Юр. английский', tts: 'en-GB' });
-  await press('saveCourse');
-  const law = (await listCourses()).find(c => c.name === 'Юр. английский');
-  await press('goCourse', { id: law.id });
+test('CRUD колода: создать, изменить, перенести в другой проект, удалить', async () => {
+  const [en, other] = [(await listProjects()).find(c => c.name === 'English'), (await listProjects()).find(c => c.name === 'Proj01')];
+  await press('goProject', { id: other.id });
   await press('newDeck');
-  assert.match(app.innerHTML, /Новая колода/);
-  setFields({ name: 'Договоры', course: law.id });
+  assert.match(page(), /Новая колода/);
+  setFields({ name: 'Договоры', project: other.id });
   await press('saveDeck');
-  assert.match(app.innerHTML, /Договоры/);
-  const deckId = Number(/data-act="goDeck" data-id="(\d+)"/.exec(app.innerHTML)[1]);
-  await press('goDeck', { id: deckId });
+  assert.match(page(), /Договоры/);
+  const deck = (await listAllDecks()).find(d => d.name === 'Договоры');
+  await press('goDeck', { id: deck.id });
   await press('editDeck');
-  assert.match(app.innerHTML, /value="Договоры"/);
-  setFields({ name: 'Контракты', course: 1 }); // перенос в курс English
+  assert.match(page(), /value="Договоры"/);
+  setFields({ name: 'Контракты', project: en.id });
   await press('saveDeck');
-  assert.match(app.innerHTML, /Контракты/);
-  assert.match(app.innerHTML, /English/);
-  await press('goCourse', { id: 1 });
-  assert.match(app.innerHTML, /Контракты/);
-  await press('goDeck', { id: deckId });
+  assert.match(page(), /Контракты/);
+  assert.match(page(), /English · 0 карточек/);
   await press('editDeck');
   await press('delDeck');
-  assert.match(app.innerHTML, /English/);
-  assert.doesNotMatch(app.innerHTML, /Контракты/);
-  await press('goLibrary');
-  await press('goCourse', { id: law.id });
-  await press('editCourse');
-  await press('delCourse');
+  assert.equal(state.nav.v, 'project');
+  assert.equal((await listAllDecks()).some(d => d.name === 'Контракты'), false);
 });
 
 test('CRUD карточка: создать, «ещё», проверка, изменить, перенести, удалить', async () => {
-  await press('goCourse', { id: 1 });
+  await press('goProject', { id: 1 });
   await press('newDeck');
-  setFields({ name: 'Допы', course: 1 });
+  setFields({ name: 'Допы', project: 1 });
   await press('saveDeck');
-  const extra = (await (await import('../www/js/repo/listDecksFlat.js')).default()).find(d => d.name === 'Допы');
+  const extra = (await listAllDecks()).find(d => d.name === 'Допы');
   await press('goDeck', { id: 1 });
   await press('newCard');
-  assert.match(app.innerHTML, /Новая карточка/);
-  assert.match(app.innerHTML, /Сохранить и добавить ещё/);
+  assert.match(page(), /＋ ещё/);
+  assert.equal(count(/class="row foot"/), 1);                  // кнопки формы — одним рядом
   setFields({ f: ' ', b: 'x', e: '', et: '', deck: 1 });
   await press('saveCard');
   assert.match(toastEl.textContent, /Заполните слово и перевод/);
   setFields({ f: 'cat', b: 'кот', e: 'The cat sleeps.', et: 'Кот спит.', deck: 1 });
   await press('saveCard', { more: '1' });
-  assert.match(app.innerHTML, /Новая карточка/);          // осталась пустая форма
-  assert.doesNotMatch(app.innerHTML, /value="cat"/);
+  assert.match(page(), /Новая карточка/);
+  assert.doesNotMatch(page(), /value="cat"/);
   setFields({ f: 'dog', b: 'пёс', e: '', et: '', deck: 1 });
   await press('saveCard');
-  assert.match(app.innerHTML, /cat/);
-  assert.match(app.innerHTML, /dog/);
+  assert.equal(state.nav.v, 'deck');
   const cat = (await listCards(1)).find(c => c.front === 'cat');
   assert.equal(cat.example_tr, 'Кот спит.');
   await press('editCard', { id: cat.id });
-  assert.match(app.innerHTML, /value="cat"/);
-  assert.match(app.innerHTML, />The cat sleeps\.<\/textarea>/);
-  assert.match(app.innerHTML, /data-act="delCard"/);
-  setFields({ f: 'kitten', b: 'котёнок', e: 'The kitten plays.', et: '', deck: 1 });
+  assert.match(page(), /value="cat"/);
+  assert.match(page(), />The cat sleeps\.<\/textarea>/);
+  setFields({ f: 'kitten', b: 'котёнок', e: '', et: '', deck: extra.id });
   await press('saveCard');
-  assert.match(app.innerHTML, /kitten/);
-  assert.equal((await listCards(1)).find(c => c.id === cat.id).example, 'The kitten plays.');
-  await press('editCard', { id: cat.id });
-  setFields({ f: 'kitten', b: 'котёнок', e: '', et: '', deck: extra.id }); // перенос
-  await press('saveCard');
-  assert.doesNotMatch(app.innerHTML, /kitten/);
   assert.equal((await listCards(extra.id))[0].front, 'kitten');
   await press('goDeck', { id: extra.id });
   await press('editCard', { id: cat.id });
@@ -321,98 +423,85 @@ test('CRUD карточка: создать, «ещё», проверка, из�
   await press('delDeck');
 });
 
-test('библиотека: список ⇄ сетка на всех уровнях цепочки', async () => {
-  await press('goLibrary');
-  assert.match(app.innerHTML, /class="collection list"/);
-  assert.match(app.innerHTML, /class="item"/);
-  await press('toggleLayout');
-  assert.match(app.innerHTML, /class="collection grid"/);
-  assert.match(app.innerHTML, /class="gtile"/);
-  await press('goCourse', { id: 1 });
-  assert.match(app.innerHTML, /class="collection grid"/);
-  assert.match(app.innerHTML, /class="gtile"/);
-  await press('goDeck', { id: 1 });
-  assert.match(app.innerHTML, /class="gtile mini"/);          // карточки — мини-карточками
-  assert.match(app.innerHTML, /data-act="editCard"/);
-  await press('toggleLayout');
-  assert.match(app.innerHTML, /class="collection list"/);
-  assert.match(app.innerHTML, /data-act="editCard"/);
-  assert.equal(state.prefs.layout, 'list');
-});
+const target = { closest: sel => (sel === '.flip' ? el : sel.includes('button') ? null : null) };
+const el = { style: {}, setPointerCapture() {} };
+const areaTarget = { closest: sel => (sel === '.view' ? {} : null) };
+const drag = async (t, x0, x1, y = 0, id = 1) => {
+  await onPointerDown({ pointerId: id, clientX: x0, clientY: 300, button: 0, target: t });
+  await onPointerMove({ pointerId: id, clientX: (x0 + x1) / 2, clientY: 300 + y / 2 });
+  await onPointerMove({ pointerId: id, clientX: x1, clientY: 300 + y });
+  await onPointerUp({ pointerId: id });
+};
 
-test('жесты: свайп влево — вперёд, вправо — назад, короткий — возврат; клик после свайпа гасится', async () => {
-  await press('goDeck', { id: 1 });
-  await press('startStudy', { mode: 'seq' });
-  await press('restart');
-  const el = { style: {}, setPointerCapture() {} };
-  const tgt = { closest: sel => (sel === '.flip' ? el : null) };
-  const swipe = async (x0, x1, y = 0) => {
-    await onPointerDown({ pointerId: 1, clientX: x0, clientY: 300, button: 0, target: tgt });
-    await onPointerMove({ pointerId: 1, clientX: (x0 + x1) / 2, clientY: 300 + y / 2 });
-    await onPointerMove({ pointerId: 1, clientX: x1, clientY: 300 + y });
-    await onPointerUp({ pointerId: 1 });
-  };
+test('жесты карточки: по кругу в обе стороны, пружина, вертикаль — прокрутка', async () => {
+  await press('goStudy');
+  await press('startStudy', { mode: 'review' });
   assert.equal(state.session.pos, 0);
-  await swipe(250, 60);                                  // влево → вперёд
-  assert.equal(state.session.pos, 1);
-  assert.match(el.style.transform, /-130%/);
-  assert.match(app.innerHTML, /card-in/);
-  assert.equal(consumeSuppress(), true);                 // клик после жеста должен быть погашен
-  assert.equal(consumeSuppress(), false);
-  await swipe(60, 250);                                  // вправо → назад
-  assert.equal(state.session.pos, 0);
+  await drag(target, 60, 250);                                   // вправо на первой — последняя (по кругу)
+  assert.equal(state.session.pos, 7);
   assert.match(el.style.transform, /130%/);
-  assert.match(app.innerHTML, /card-back/);
-  await swipe(250, 60); await consumeSuppress();
-  await swipe(250, 230);                                 // короткий — пружина
-  assert.equal(state.session.pos, 1);
-  assert.equal(el.style.transform, '');
-  await consumeSuppress();
-  await swipe(100, 130, 400);                            // вертикальный — это прокрутка
-  assert.equal(state.session.pos, 1);
-  await restart0();
-  await swipe(60, 250);                                  // «назад» на первой карточке — некуда
+  assert.match(page(), /card-back/);
+  assert.equal(consumeSuppress(), true);
+  assert.equal(consumeSuppress(), false);
+  await drag(target, 250, 60);                                   // влево на последней — первая (по кругу)
+  assert.equal(state.session.pos, 0);
+  assert.match(el.style.transform, /-130%/);
+  assert.match(page(), /card-in/);
+  consumeSuppress();
+  await drag(target, 250, 230);                                  // короткий — возврат
   assert.equal(state.session.pos, 0);
   assert.equal(el.style.transform, '');
-  async function restart0() { await press('restart'); }
-});
-
-test('жесты: клик, порождённый свайпом, не переворачивает карточку; обычный тап — переворачивает', async () => {
-  await press('restart');
-  const el = { style: {}, setPointerCapture() {} };
-  const tgt = { closest: sel => (sel === '.flip' ? el : null) };
-  flipEl.cls.delete('flipped');
-  await onPointerDown({ pointerId: 2, clientX: 250, clientY: 300, button: 0, target: tgt });
-  await onPointerMove({ pointerId: 2, clientX: 200, clientY: 300 });
-  await onPointerMove({ pointerId: 2, clientX: 120, clientY: 300 });
-  await onPointerUp({ pointerId: 2 });                   // ушли дальше порога → следующая карточка
-  await press('flip');                                   // «клик» сразу после свайпа
-  assert.equal(flipEl.cls.has('flipped'), false);
-  await press('flip');                                   // настоящий тап
-  assert.equal(flipEl.cls.has('flipped'), true);
-  await onPointerDown({ pointerId: 3, clientX: 10, clientY: 10, button: 0, target: { closest: sel => (sel === 'button' ? {} : el) } });
-  await onPointerMove({ pointerId: 3, clientX: 300, clientY: 10 });
-  await onPointerUp({ pointerId: 3 });                   // жест по кнопке внутри карточки не начинается
+  consumeSuppress();
+  await drag(target, 100, 130, 400);                             // вертикальный
+  assert.equal(state.session.pos, 0);
   assert.equal(consumeSuppress(), false);
 });
 
-test('«Назад» из формы идёт по истории браузера, если она есть', async () => {
-  await press('goDeck', { id: 1 });
-  await press('newCard');
-  let backs = 0;
-  globalThis.history = { length: 3, back: () => backs++, pushState() {} };
-  await press('back');
-  assert.equal(backs, 1);
-  delete globalThis.history;
-  await press('back');                                   // без истории — на родительский экран
-  assert.match(app.innerHTML, /Карточки \(8\)/);
+test('жесты: клик после свайпа гасится, тап по кнопке не начинает жест', async () => {
+  flipEl.cls.delete('flipped');
+  await drag(target, 250, 100);
+  await press('flip');                                           // «клик» сразу после свайпа
+  assert.equal(flipEl.cls.has('flipped'), false);
+  await press('flip');                                           // настоящий тап
+  assert.equal(flipEl.cls.has('flipped'), true);
+  await onPointerDown({ pointerId: 3, clientX: 10, clientY: 10, button: 0, target: { closest: sel => (sel.includes('button') ? {} : el) } });
+  await onPointerMove({ pointerId: 3, clientX: 300, clientY: 10 });
+  await onPointerUp({ pointerId: 3 });
+  assert.equal(consumeSuppress(), false);
 });
 
-test('удаление курса каскадно очищает данные', async () => {
-  await press('goCourse', { id: 1 });
-  await press('editCourse');
-  await press('delCourse');
-  assert.match(app.innerHTML, /Библиотека/);
-  assert.doesNotMatch(app.innerHTML, /English/);
-  assert.match(toastEl.textContent, /Курс удалён/);
+test('свайп, начатый на кнопке свободной области, листает экран и не нажимает кнопку', async () => {
+  await press('goStudy');
+  const onButton = { closest: sel => (sel === '.view' ? {} : null) };      // кнопка-плитка не блокирует жест
+  await drag(onButton, 300, 40);
+  assert.equal(state.nav.v, 'settings');
+  await press('startStudy', { mode: 'srs' });                                // «клик» после жеста погашен
+  assert.equal(state.nav.v, 'settings');
+  await press('goStudy');
+});
+
+test('жесты по свободной области: листают страницы и экраны; в сессии и формах отключены', async () => {
+  await press('goStudy');
+  await drag(areaTarget, 250, 60);                               // «Учёба» — одна страница: влево → настройки
+  assert.equal(state.nav.v, 'settings');
+  await drag(areaTarget, 60, 250);                               // вправо → обратно в «Учёбу»
+  assert.equal(state.nav.v, 'study');
+  await drag(areaTarget, 60, 250);                               // вправо → библиотека
+  assert.equal(state.nav.v, 'library');
+  await drag(areaTarget, 250, 230);                              // короткий — ничего
+  assert.equal(state.nav.v, 'library');
+  consumeSuppress();                                             // (браузер шлёт клик после жеста — он гасится)
+  await press('newProject');
+  await drag(areaTarget, 250, 60);                               // на форме свайп не работает
+  assert.equal(state.nav.v, 'projectForm');
+  await press('back');
+});
+
+test('удаление проекта каскадно очищает данные', async () => {
+  await press('goProject', { id: 1 });
+  await press('editProject');
+  await press('delProject');
+  assert.equal(state.nav.v, 'library');
+  assert.doesNotMatch(page(), />English</);
+  assert.match(toastEl.textContent, /Проект удалён/);
 });

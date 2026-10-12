@@ -5,5 +5,6 @@ export const PREF_OPTIONS = {
   anim: ONOFF,
   autoplay: [['off', 'Выкл'], ['on', 'Вкл']],
   dir: [['fwd', 'Язык → перевод'], ['rev', 'Перевод → язык']],
-  layout: [['list', 'Список'], ['grid', 'Сетка']]
+  layout: [['list', 'Список'], ['grid', 'Сетка']],
+  shuffle: [['off', 'По порядку'], ['on', 'Вперемешку']]
 };

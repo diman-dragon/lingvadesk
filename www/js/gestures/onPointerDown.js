@@ -1,7 +1,16 @@
+import { state } from '../state/appState.js';
+import { SWIPE_SCREENS } from '../constants/SWIPE_SCREENS.js';
 import { swipe } from './swipeState.js';
-/** Начало жеста на карточке (кнопки внутри карточки жест не начинают). */
+/**
+ * Жест начинается на карточке (кроме её кнопок) или на свободной области экрана — в том числе с кнопки:
+ * клик после свайпа гасится. Поля ввода и списки выбора жест не начинают.
+ */
 export default function onPointerDown(e) {
-  const el = e.target.closest?.('.flip');
-  if (!el || e.target.closest('button') || e.button > 0) return;
-  Object.assign(swipe, { id: e.pointerId, x0: e.clientX, y0: e.clientY, dx: 0, el, moved: false, suppress: false });
+  if (e.button > 0 || e.target.closest('input,textarea,select')) return;
+  const inCard = e.target.closest('.flip');
+  const card = inCard && !e.target.closest('button') ? inCard : null;
+  const area = !inCard && SWIPE_SCREENS.includes(state.nav.v) && e.target.closest('.view');
+  const el = card || area;
+  if (!el) return;
+  Object.assign(swipe, { id: e.pointerId, x0: e.clientX, y0: e.clientY, dx: 0, el, kind: card ? 'card' : 'area', moved: false, suppress: false });
 }

@@ -1,6 +1,8 @@
 import isIntro from './isIntro.js';
-/** Прогресс текущей фазы: для «Обучения» отдельно знакомство и проверка. */
+/** { pct, text } для полосы прогресса. */
 export default function progressOf(s) {
-  if (s.mode !== 'learn') return { pos: s.pos, total: s.order.length };
-  return isIntro(s) ? { pos: s.pos, total: s.intro } : { pos: s.pos - s.intro, total: s.order.length - s.intro };
+  const n = s.order.length;
+  if (isIntro(s)) return { pct: (s.pos + 1) / n * 100, text: `Знакомство · ${s.pos + 1} / ${n}` };
+  if (s.mode === 'review') return { pct: (s.pos + 1) / n * 100, text: `${s.pos + 1} / ${n}` };
+  return { pct: (s.total - n) / s.total * 100, text: `Осталось ${n} из ${s.total}` };
 }

@@ -1,3 +1,3 @@
 import studyStep from '../study/studyStep.js';
-import movePos from '../study/movePos.js';
-export default function skip() { return studyStep(s => movePos(s, 1)); }
+import cyclePos from '../study/cyclePos.js';
+export default function skip() { return studyStep(s => cyclePos(s, 1)); }

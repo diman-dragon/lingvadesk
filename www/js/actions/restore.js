@@ -7,5 +7,5 @@ export default async function restore() {
   const r = await restoreBackup();
   toast('Восстановлено. Защитная копия: ' + r.safety);
   state.session = null;
-  return go('today');
+  return go('library');
 }

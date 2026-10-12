@@ -1,2 +1,7 @@
+import ttsStop from '../native/ttsStop.js';
 import goBack from '../nav/goBack.js';
-export default function back() { return goBack(); }
+/** «Назад» в интерфейсе = системная «Назад»; озвучка при выходе останавливается. */
+export default async function back() {
+  await ttsStop().catch(() => {});
+  return goBack();
+}
