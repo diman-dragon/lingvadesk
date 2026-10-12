@@ -10,8 +10,8 @@
 html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none}
 body{background:var(--bg);color:var(--text);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;transition:background .3s}
 #app{height:100vh;height:100dvh;max-width:680px;margin:0 auto;display:flex;flex-direction:column}
-.view{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;touch-action:pan-y;padding:max(10px,env(safe-area-inset-top)) 16px 6px}
-.view.form{overflow-y:auto;scrollbar-width:none}
+.view{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;touch-action:none;padding:max(10px,env(safe-area-inset-top)) 16px 6px}
+.view.form{overflow-y:auto;scrollbar-width:none;touch-action:pan-y}
 .view.form::-webkit-scrollbar{display:none}
 .muted{color:var(--muted)}
 .sub{color:var(--muted);font-size:13px;margin:-8px 0 8px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -131,7 +131,7 @@ select{appearance:none;-webkit-appearance:none;background-image:linear-gradient(
 .big{font-size:calc(30px*var(--fs));font-weight:750;line-height:1.2;overflow-wrap:anywhere}
 .ex{font-size:calc(15px*var(--fs));color:var(--muted)}
 .hint{font-size:12px}
-.flip{flex:1;min-height:0;perspective:1400px;margin:0 0 10px;cursor:pointer;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.flip{flex:1;min-height:0;perspective:1400px;margin:0 0 10px;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none}
 .flip-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.3,.7,.2,1)}
 .flip.flipped .flip-inner{transform:rotateY(180deg)}
 .flip .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:auto;scrollbar-width:none}
@@ -182,3 +182,7 @@ select{appearance:none;-webkit-appearance:none;background-image:linear-gradient(
   .setting{padding:6px 0}.s-title{margin-bottom:4px}.seg button{padding:6px 4px;font-size:13px}.group{padding:0 12px}
   .tabs .tab{padding:3px 4px}.tab .ti{font-size:18px}
 }
+
+/* ===== Жесты: touch-action нужно на КАЖДОМ прокручиваемом контейнере внутри (.face, .pager), иначе браузер отменяет жест ===== */
+html,body,#app,.view:not(.form),.view:not(.form) *{touch-action:none}
+.view.form,.view.form *{touch-action:pan-y}

@@ -1,7 +1,7 @@
 import { appEl } from '../dom/appEl.js';
 import dispatch from './dispatch.js';
-import handlePopState from './handlePopState.js';
 import onResize from './onResize.js';
+import systemBack from '../nav/systemBack.js';
 import onPointerDown from '../gestures/onPointerDown.js';
 import onPointerMove from '../gestures/onPointerMove.js';
 import onPointerUp from '../gestures/onPointerUp.js';
@@ -12,6 +12,6 @@ export default function bindEvents() {
   appEl.addEventListener('pointermove', onPointerMove);
   appEl.addEventListener('pointerup', onPointerUp);
   appEl.addEventListener('pointercancel', onPointerCancel);
-  globalThis.addEventListener?.('popstate', handlePopState);
+  globalThis.addEventListener?.('lingvaBack', systemBack);   // шлёт MainActivity.onBackPressed
   globalThis.addEventListener?.('resize', onResize);
 }

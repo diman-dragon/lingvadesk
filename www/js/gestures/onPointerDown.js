@@ -12,5 +12,5 @@ export default function onPointerDown(e) {
   const area = !inCard && SWIPE_SCREENS.includes(state.nav.v) && e.target.closest('.view');
   const el = card || area;
   if (!el) return;
-  Object.assign(swipe, { id: e.pointerId, x0: e.clientX, y0: e.clientY, dx: 0, el, kind: card ? 'card' : 'area', moved: false, suppress: false });
+  Object.assign(swipe, { id: e.pointerId, x0: e.clientX, y0: e.clientY, dx: 0, t0: Date.now(), el, kind: card ? 'card' : 'area', moved: false, suppress: false });
 }

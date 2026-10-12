@@ -32,3 +32,22 @@ test('plugin(): работает без Capacitor.registerPlugin и сообща
   assert.throws(() => plugin('X'), /недоступен/);
   globalThis.Capacitor = saved;
 });
+
+test('жесты работают на сенсорном экране: touch-action: none у карточки и областей', () => {
+  const css = readFileSync('www/css/style.css', 'utf8');
+  assert.match(css, /\.view\{[^}]*touch-action:none/);
+  assert.match(css, /\.flip\{[^}]*touch-action:none/);
+  assert.doesNotMatch(css, /\.flip\{[^}]*touch-action:pan-y/);
+  // прокручиваемые контейнеры внутри (.face, .pager) тоже должны запрещать панорамирование: правило на все потомки
+  assert.match(css, /\.view:not\(\.form\) \*\{touch-action:none\}/);
+});
+
+test('системная «Назад»: Android перехватывает кнопку и шлёт то же событие, что слушает JS', () => {
+  const main = readFileSync('android/app/src/main/java/com/example/lingocards/MainActivity.java', 'utf8');
+  const back = readFileSync('android/app/src/main/java/com/example/lingocards/BackToJs.java', 'utf8');
+  const bind = readFileSync('www/js/events/bindEvents.js', 'utf8');
+  assert.match(main, /public void onBackPressed\(\) \{ BackToJs\.run\(this\); \}/);
+  assert.doesNotMatch(main, /super\.onBackPressed/);               // приложение никогда не закрывается кнопкой «Назад»
+  const event = /new Event\('(\w+)'\)/.exec(back)[1];
+  assert.match(bind, new RegExp(`addEventListener\\?\\.\\('${event}', systemBack\\)`));
+});

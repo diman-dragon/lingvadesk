@@ -20,8 +20,8 @@ const imp = p => import(`../www/js/${p}`).then(m => m.default);
 const { default: boot } = await import('../www/js/boot.js');
 const { state } = await import('../www/js/state/appState.js');
 const dispatch = await imp('events/dispatch.js');
-const handlePopState = await imp('events/handlePopState.js');
-const installBackGuard = await imp('nav/installBackGuard.js');
+const systemBack = await imp('nav/systemBack.js');
+const isSwipe = await imp('gestures/isSwipe.js');
 const swipeNavigate = await imp('nav/swipeNavigate.js');
 const loadPrefs = await imp('settings/loadPrefs.js');
 const listProjects = await imp('repo/listProjects.js');
@@ -198,35 +198,55 @@ test('автоозвучка и озвучка по голосу проекта'
   await press('back');
 });
 
-test('«Назад» идёт шаг за шагом до библиотеки и дальше не выходит', async () => {
-  const stack = [{}]; // начальная запись истории
-  globalThis.history = {
-    get length() { return stack.length; },
-    pushState: s => stack.push(s), replaceState: s => (stack[stack.length - 1] = s)
-  };
-  const systemBack = async () => { stack.pop(); await handlePopState({ state: stack.at(-1) }); };
-  state.nav = { v: 'library' };
-  installBackGuard();
-  assert.deepEqual(stack.map(s => s.guard ? 'guard' : s.nav.v), ['guard', 'library']);
+test('системная «Назад»: ровно один шаг каждый раз до библиотеки, дальше остаёмся', async () => {
+  state.nav = { v: 'library' }; state.stack = [];
   await press('goStudy');
   await press('goSettings');
   await press('goLibrary');
   await press('goProject', { id: 1 });
   await press('goDeck', { id: 1 });
-  const lengthBefore = stack.length;
-  await press('goDeck', { id: 1 });                              // тот же экран — историю не растим
-  assert.equal(stack.length, lengthBefore);
+  const depth = state.stack.length;
+  await press('goDeck', { id: 1 });                              // тот же экран — стек не растёт
+  assert.equal(state.stack.length, depth);
   for (const v of ['project', 'library', 'settings', 'study', 'library']) {
     await systemBack();
     assert.equal(state.nav.v, v);
   }
-  for (let i = 0; i < 3; i++) {                                  // дальше библиотеки — никуда
+  assert.equal(state.stack.length, 0);
+  const shown = page();
+  for (let i = 0; i < 4; i++) {                                  // дальше первого экрана — никуда
     await systemBack();
     assert.equal(state.nav.v, 'library');
-    assert.equal(stack.at(-1).nav.v, 'library');
-    assert.match(page(), /Библиотека/);
+    assert.equal(page(), shown);
   }
-  delete globalThis.history;
+});
+
+test('«Назад» пропускает экраны, которых уже нет (удалённый проект)', async () => {
+  await press('goLibrary');
+  await press('newProject');
+  setFields({ name: 'Temp', tts: 'en-US' });
+  await press('saveProject');
+  const t = (await listProjects()).find(c => c.name === 'Temp');
+  await press('goProject', { id: t.id });
+  await press('editProject');
+  await press('delProject');
+  await systemBack();                                            // формы и проекта уже нет — пропущены
+  assert.equal(state.nav.v, 'library');
+  assert.doesNotMatch(page(), /Temp/);
+});
+
+test('системная «Назад» с экрана без стека ведёт в библиотеку', async () => {
+  state.nav = { v: 'study' }; state.stack = [];
+  await systemBack();
+  assert.equal(state.nav.v, 'library');
+});
+
+test('isSwipe: длинный жест, быстрый флик, медленный короткий и случайный сдвиг', () => {
+  assert.equal(isSwipe(70, 900), true);       // длинный
+  assert.equal(isSwipe(40, 10), true);        // короткий, но быстрый — флик
+  assert.equal(isSwipe(40, 400), false);      // короткий и медленный
+  assert.equal(isSwipe(20, 1), false);        // меньше минимума
+  assert.equal(isSwipe(-45, 30), true);       // влево
 });
 
 test('страницы вместо прокрутки: число элементов зависит от высоты области, точки страниц', async () => {
@@ -455,6 +475,17 @@ test('жесты карточки: по кругу в обе стороны, п�
   await drag(target, 100, 130, 400);                             // вертикальный
   assert.equal(state.session.pos, 0);
   assert.equal(consumeSuppress(), false);
+});
+
+test('жесты: быстрый короткий флик листает карточку, диагональный жест не отменяется', async () => {
+  await press('goStudy');
+  await press('startStudy', { mode: 'review' });
+  await drag(target, 250, 205);                                  // 45 px, мгновенно — флик
+  assert.equal(state.session.pos, 1);
+  consumeSuppress();
+  await drag(target, 250, 100, 60);                              // диагональ: dy заметный, но не доминирует
+  assert.equal(state.session.pos, 2);
+  consumeSuppress();
 });
 
 test('жесты: клик после свайпа гасится, тап по кнопке не начинает жест', async () => {

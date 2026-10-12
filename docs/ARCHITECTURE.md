@@ -17,8 +17,11 @@
 - **Без прокрутки.** Экран — flex-колонка на всю высоту (`100dvh`). Длинные списки выводятся страницами по высоте области
   (`pager/*`, размеры элементов — `constants/PAGER` и CSS `.item`/`.gtile`), страницы листаются свайпом и точками.
   Формы и карточки компактны; на низких экранах (`≤700px`, `≤600px`) CSS ужимается.
-- **«Назад».** Каждый переход — шаг истории (`nav/go` → `pushState`). Системная «Назад» возвращает на шаг назад до библиотеки;
-  страж истории (`nav/installBackGuard`, `events/handlePopState`) не даёт выйти из приложения.
+- **«Назад».** Собственный стек экранов (`state.stack`): каждый переход (`nav/go`) кладёт предыдущий экран в стек, «Назад»
+  (`nav/popBack`) снимает верхний — ровно один шаг; удалённые экраны пропускаются. На первом экране (библиотека) остаёмся.
+  Системную кнопку перехватывает Android: `MainActivity.onBackPressed` → `BackToJs` шлёт в WebView событие `lingvaBack`,
+  его слушает `events/bindEvents` → `nav/systemBack`. Историю браузера (`pushState`) не используем: Chrome/WebView
+  пропускает записи, созданные без жеста пользователя. Приложение кнопкой «Назад» не закрывается.
 - **Кольцо свайпов.** Библиотека → Учёба → Настройки → Библиотека. Свайп листает страницы по кругу; за краем последней страницы
   верхнеуровневого экрана — переход к соседнему (`nav/swipeNavigate`, `nav/switchRing`). Внутри проекта/колоды страницы
   замыкаются сами на себя. В сессии учёбы, на формах свайп по области отключён.
@@ -34,6 +37,12 @@
 - Формулы `srs/nextSrs`: again → 10 минут; good/hard/easy → интервалы SM-2; ease ≥ 1.3. Подпись «когда вернётся» — `srs/previewLabel`.
 - Переворот — CSS 3D (`components/flipFaces`, `dom/toggleFlip`), без перерисовки; сколько угодно раз.
 
+## Жесты и `touch-action`
+Все свайпы — Pointer Events (`gestures/`). Чтобы WebView не отнимал жест (`pointercancel`), `touch-action: none` задан на `.view`,
+на всех её потомках и на каждом прокручиваемом контейнере внутри (`.face`, `.pager`): Chromium считает эффективное
+`touch-action` только до ближайшего прокручиваемого предка. Жест засчитывается, если путь ≥ 60 px или это быстрый «флик»
+(≥ 32 px при скорости ≥ 0,35 px/мс); отменяется только явно вертикальный жест. Клик после свайпа гасится.
+
 ## Структура кода
 ```
 www/js/
@@ -46,11 +55,11 @@ www/js/
   study/                   startSession, buildOrder, restoreOrder, cyclePos, gradeCard, startQuiz, restartSession, …
   deckio/                  parseImport, parseDeck, parseLibrary, saveLibrary, importLibraryFromFile, exportLibraryToFile, …
   pager/                   layoutPager, perPage, pageCount, setPage
-  nav/                     go, goBack, parentOf, render, swipeNavigate, switchRing, installBackGuard
-  gestures/                onPointer*, finishCardSwipe, finishAreaSwipe, flyOut, springBack, …
+  nav/                     go, popBack, systemBack, goBack, parentOf, render, swipeNavigate, switchRing
+  gestures/                onPointer*, isSwipe, finishCardSwipe, finishAreaSwipe, flyOut, springBack, …
   components/ views/       разметка
   actions/                 по одному действию на файл + index.js
-  events/                  dispatch, bindEvents, handlePopState, onResize
+  events/                  dispatch, bindEvents, onResize, watchSystemTheme
 android/…/java/com/example/lingocards/   плагины Capacitor (core, db, saf, backup, tts)
 ```
 Правила кода — `docs/CONVENTIONS.md`; форматы — `docs/FORMATS.md`; обновление поверх — `docs/UPDATES.md`.

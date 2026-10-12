@@ -1,2 +1,6 @@
-/** distance — порог срабатывания жеста (px); slop — допуск, меньше которого это тап. */
-export const SWIPE = { distance: 80, slop: 8, flyMs: 180 };
+/**
+ * distance — путь для засчёта жеста (px); slop — меньше этого это тап; flyMs — полёт карточки;
+ * flick — быстрый короткий жест: путь ≥ flickDistance при скорости ≥ flickSpeed (px/мс);
+ * vertical — жест считается вертикальным (отмена), если |dy| > vertical·|dx| и |dy| ≥ 30.
+ */
+export const SWIPE = { distance: 60, slop: 8, flyMs: 180, flickDistance: 32, flickSpeed: 0.35, vertical: 3 };

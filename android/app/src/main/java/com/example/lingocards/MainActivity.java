@@ -10,4 +10,9 @@ public class MainActivity extends BridgeActivity {
         for (Class<? extends Plugin> p : PluginList.ALL) registerPlugin(p);
         super.onCreate(savedInstanceState);
     }
+
+    /** «Назад» всегда обрабатывает приложение (шаг назад по экранам; на первом экране — остаёмся). */
+    @Override
+    @SuppressWarnings("deprecation")
+    public void onBackPressed() { BackToJs.run(this); }
 }
