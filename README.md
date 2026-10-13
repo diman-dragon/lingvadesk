@@ -15,7 +15,7 @@
 
 ## Сборка APK через GitHub Actions
 1. Запушьте репозиторий в GitHub (содержимое папки `lingvadesk/` — в корень).
-2. **Actions → Android build → последний запуск → Artifacts → `LingvaDesk-debug-apk`** (запускается на push, PR и вручную).
+2. **Actions → Android build → последний запуск → Artifacts → `LingvaDesk-<версия>-debug` (внутри `LingvaDesk-<версия>-debug.apk`)** (запускается на push, PR и вручную).
 3. Установка **поверх** предыдущей версии, без удаления — см. `docs/UPDATES.md`.
 
 CI: Node 22 → `npm install` → проверка архитектуры → тесты → JDK 17 → Gradle 8.2.1 → `cap sync` → `assembleDebug`.

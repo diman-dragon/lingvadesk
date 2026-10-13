@@ -28,3 +28,10 @@ test('versionCode новой версии больше любого прежне
   const code = (a * 10000 + b * 100 + c) * 1000;
   assert.ok(code > 999, 'новый код должен превосходить старые коды (номера запусков CI)');
 });
+
+test('имя сборки: проект + версия (LingvaDesk-<версия>-debug.apk), артефакт CI тоже', () => {
+  const wf = readFileSync('.github/workflows/android.yml', 'utf8');
+  assert.match(gradle, /base \{ archivesName = "LingvaDesk-\$\{appVersion\}" \}/);
+  assert.match(wf, /name: LingvaDesk-\$\{\{ steps\.ver\.outputs\.v \}\}-debug/);
+  assert.match(wf, /node -p "require\('\.\/package\.json'\)\.version"/);
+});

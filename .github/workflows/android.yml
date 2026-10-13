@@ -26,6 +26,10 @@ jobs:
       - name: Install npm deps
         run: npm install
 
+      - name: Read app version
+        id: ver
+        run: echo "v=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
       - name: Check architecture rules
         run: npm run check
 
@@ -53,7 +57,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: LingvaDesk-debug-apk
+          name: LingvaDesk-${{ steps.ver.outputs.v }}-debug
           path: android/app/build/outputs/apk/debug/*.apk
 
       # ---- релиз по тегу vX.Y.Z (подпись: свои секреты, иначе постоянный ключ) ----
