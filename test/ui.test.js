@@ -35,6 +35,16 @@ const onPointerMove = await imp('gestures/onPointerMove.js');
 const onPointerUp = await imp('gestures/onPointerUp.js');
 const consumeSuppress = await imp('gestures/consumeSuppress.js');
 const { APP_VERSION } = await import('../www/js/constants/APP_VERSION.js');
+const currentCard = await imp('study/currentCard.js');
+const onVisibility = await imp('events/onVisibility.js');
+const { track } = await import('../www/js/state/trackState.js');
+
+// Время в тестах: wait(мс) «проматывает» часы, чтобы проверять оценку по поведению без реальных пауз.
+const realNow = Date.now;
+let skew = 0;
+Date.now = () => realNow() + skew;
+const wait = ms => { skew += ms; };
+const DAY = 86400000;
 
 /** Всё, что видит пользователь: экран + текущая страница списка + точки. */
 const page = () => app.innerHTML + (app.innerHTML.includes('id="pager"') ? fields.pager.innerHTML + fields.dots.innerHTML : '');
@@ -106,82 +116,121 @@ test('библиотека: список ⇄ сетка на всех уровн
   assert.match(page(), /class="item"/);
 });
 
-test('учёба: область, статистика и три режима', async () => {
+test('учёба: «Давай-ка поучим…», интервальное повторение по всем колодам, обучение и случайная колода', async () => {
   await press('goStudy');
   assert.equal(count(/class="tab on"/), 1);
+  assert.match(page(), /Давай-ка поучим/);
   assert.match(page(), /Что учим/);
   assert.match(page(), /<optgroup label="English"><option value="p:1">Весь проект<\/option><option value="d:1">Basics<\/option>/);
-  for (const t of ['Интервальное повторение', 'Обучение', 'Повторение', 'Порядок повторения', 'к повторению', 'новых', 'выучено']) assert.match(page(), new RegExp(t));
+  for (const t of ['Интервальное повторение', 'Обучение', 'Случайная колода', 'Порядок карточек', 'к повторению', 'сегодня', 'дней подряд', 'Все колоды · выучено 0']) assert.match(page(), new RegExp(t));
   assert.equal(count(/data-act="startStudy"/), 3);
+  assert.match(page(), /class="tile off"/);                      // вся библиотека: случайная колода недоступна
+  await press('startStudy', { mode: 'review' });
+  assert.equal(state.nav.v, 'study');
+  assert.match(toastEl.textContent, /Выберите проект или колоду/);
+  await change('setScope', { value: 'p:1' });
+  assert.doesNotMatch(page(), /class="tile off"/);
+  assert.match(page(), /Случайная колода проекта/);
   await change('setScope', { value: 'd:1' });
-  assert.equal(state.scope, 'd:1');
   assert.match(page(), /<option value="d:1" selected>/);
+  assert.match(page(), /Именно эта колода/);
   await setSetting('scope', 'p:999');                           // область удалена
   state.scope = 'p:999';
   await press('goStudy');
   assert.equal(state.scope, 'all');
 });
 
-test('интервальное повторение: оценки, прогресс, листание по кругу', async () => {
+test('интервальное повторение: оценка по поведению, без кнопок оценки, листание по кругу', async () => {
   await press('startStudy', { mode: 'srs' });
   assert.equal(state.nav.v, 'session');
+  assert.equal(state.session.scope, 'all');                      // всегда по всем колодам
   assert.match(page(), /Осталось 8 из 8/);
   assert.match(page(), /English · Basics/);
   assert.match(app.innerHTML, /class="tabs"/);                   // нижняя панель не пропадает
   assert.doesNotMatch(app.innerHTML, /<header>.*data-act="goSettings"/);
   assert.match(app.innerHTML, /class="flip" data-act="flip"/);
+  assert.match(app.innerHTML, /<button class="speak lg" data-act="speak" aria-label="Озвучить"[^>]*><svg/);
+  assert.match(app.innerHTML, /Перевернуть/);
+  assert.doesNotMatch(app.innerHTML, /data-act="grade"|Снова|Трудно|Хорошо|Легко/);
   await press('flip');
   assert.ok(flipEl.cls.has('flipped'));
-  const c = fields.controls.innerHTML;
-  for (const g of ['Снова', 'Трудно', 'Хорошо', 'Легко']) assert.match(c, new RegExp(g));
-  assert.doesNotMatch(c, /Перевернуть/);
-  assert.match(c, /<small>10 мин<\/small>/);
-  await press('flip'); await press('flip');
-  assert.equal(flipEl.cls.has('flipped'), true);
-  await press('grade', { g: 'good' });
+  assert.doesNotMatch(app.innerHTML, /data-act="grade"/);        // после ответа тоже никаких оценок
+  await press('flip'); await press('flip'); await press('flip');
+  await press('skip'); await press('skip');                      // пролистали не глядя — расписание не тронуто
+  assert.deepEqual([state.session.order.length, state.session.pos], [8, 2]);
+  const easy = currentCard(state.session);
+  wait(2000); await press('flip'); wait(2000); await press('skip');   // вспомнил за 2 с, ответ глянул 2 с → легко
   assert.match(page(), /Осталось 7 из 8/);
   assert.equal(state.revealed, false);
-  for (let i = 0; i < 7; i++) await press('skip');               // вперёд по кругу
-  assert.equal(state.session.pos, 0);
-  await press('prev');                                           // назад от первой — последняя
-  assert.equal(state.session.pos, 6);
+  assert.deepEqual([easy.interval, easy.reps], [4, 1]);
+  assert.ok(easy.due > Date.now() + 3 * DAY);
+  const hard = currentCard(state.session);
+  wait(10000); await press('flip'); wait(6000); await press('skip');   // мучился и долго читал → «Снова»
+  assert.match(page(), /Осталось 7 из 8/);
+  assert.deepEqual([hard.interval, hard.reps], [0, 0]);
+  assert.ok(hard.due > Date.now() && hard.due <= Date.now() + 11 * 60000);
+  assert.equal(state.session.order.at(-1), hard.id);
+  const posBefore = state.session.pos;
+  wait(60000); await press('skip');                              // отвлёкся на минуту — не оцениваем
+  assert.deepEqual([state.session.order.length, state.session.pos], [7, posBefore + 1]);
+  await press('prev');                                           // назад: без оценки, карточка «пересмотрена»
+  assert.equal(track.revisit, true);
   assert.match(page(), /card-back/);
+  document.hidden = true; onVisibility(); wait(60000);           // свернули приложение — время не идёт
+  document.hidden = false; onVisibility(); wait(2000);
+  await press('flip');
+  assert.ok(track.think >= 2000 && track.think < 2500, `think=${track.think}`);
+  await press('skip');                                           // перевернул и ушёл — это тоже оценка (легко)
+  assert.equal(state.session.order.length, 6);
+  const p0 = state.session.pos;
+  for (let i = 0; i < 6; i++) await press('skip');               // вперёд по кругу, не глядя
+  assert.equal(state.session.pos, p0);
 });
 
-test('«Повторение»: без оценок, карточки по кругу, переворот туда-обратно', async () => {
+test('«Случайная колода»: проект → его колода (🎲 — другая), без расписания, по кругу, переворот туда-обратно', async () => {
   await press('back');
   assert.equal(state.nav.v, 'study');
+  await change('setScope', { value: 'p:1' });
   await press('startStudy', { mode: 'review' });
+  assert.deepEqual([state.session.scope, state.session.origin], ['d:1', 'p:1']);
+  assert.match(page(), /Случайная колода/);
   assert.match(page(), /1 \/ 8/);
+  assert.match(app.innerHTML, /data-act="restart"/);             // 🎲 в шапке
   assert.match(page(), /Перевернуть/);
-  fields.controls = { innerHTML: 'без оценок' };
-  await press('flip'); await press('flip'); await press('flip');
-  assert.equal(fields.controls.innerHTML, 'без оценок');
   assert.equal(count(/data-act="grade"/), 0);
-  await press('prev');
-  assert.equal(state.session.pos, 7);
+  const first = currentCard(state.session), due = first.due;
+  wait(2000); await press('flip'); wait(2000); await press('skip');
+  assert.equal(first.due, due);                                  // просто карточки: расписание не меняется
+  assert.deepEqual([state.session.order.length, state.session.pos], [8, 1]);
+  await press('prev'); await press('prev');
+  assert.equal(state.session.pos, 7);                            // по кругу назад
   await press('skip');
   assert.equal(state.session.pos, 0);
   await press('toggleDir');
   assert.equal(state.prefs.dir, 'rev');
   assert.match(page(), /<div class="big">яблоко<\/div>/);
   await press('toggleDir');
+  await press('back');
+  await change('setScope', { value: 'd:1' });                    // колода — идёт именно она, 🎲 не нужна
+  await press('startStudy', { mode: 'review' });
+  assert.equal(state.session.scope, 'd:1');
+  assert.doesNotMatch(app.innerHTML, /data-act="restart"/);
 });
 
-test('«Обучение»: знакомство (обе стороны, без оценок) → проверка', async () => {
+test('«Обучение»: знакомство (обе стороны, без оценок) → проверка по поведению', async () => {
   await press('back');
   await press('startStudy', { mode: 'learn' });
-  assert.match(page(), /Знакомство · 1 \/ 7/);
+  assert.match(page(), /Знакомство · 1 \/ 5/);
   assert.match(page(), /class="flip flipped"/);
   assert.match(page(), /К проверке/);
   assert.equal(count(/data-act="grade"/), 0);
   await press('skip'); await press('prev'); await press('prev');
-  assert.equal(state.session.pos, 6);                           // знакомство тоже по кругу
+  assert.equal(state.session.pos, 4);                           // знакомство тоже по кругу
   await press('startQuiz');
-  assert.match(page(), /Осталось 7 из 7/);
-  assert.match(page(), /Показать ответ/);
+  assert.match(page(), /Осталось 5 из 5/);
+  assert.match(page(), /Перевернуть/);
   assert.doesNotMatch(page(), /Знакомство/);
-  for (let i = 0; i < 7; i++) { await press('flip'); await press('grade', { g: 'good' }); }
+  for (let i = 0; i < 5; i++) { wait(2000); await press('flip'); wait(2000); await press('skip'); }
   assert.match(page(), /Пачка выучена/);
   await press('restart');
   assert.match(page(), /Новых слов нет/);
@@ -194,6 +243,9 @@ test('автоозвучка и озвучка по голосу проекта'
   assert.deepEqual(bridge.io.spoken, { text: 'apple', lang: 'en-US' });
   await press('speak', { t: 'hello', lang: 'de-DE' });
   assert.deepEqual(bridge.io.spoken, { text: 'hello', lang: 'de-DE' });
+  const icon = { classList: { add: c => icon.on = c, remove: () => {} } };
+  await press('speak', { t: 'bye', lang: 'en-US' }, icon);        // волны на значке оживают на время озвучки
+  assert.equal(icon.on, 'on');
   await press('setPref', { key: 'autoplay', v: 'off' });
   await press('back');
 });
@@ -315,7 +367,7 @@ test('настройки: четыре страницы, тема/шрифт/а�
   assert.equal(state.pager.fixed, true);
   assert.match(page(), /class="dtab on" data-act="gotoPage" data-i="0">Вид</);
   const all = state.pager.items.join('');
-  for (const t of ['Вид библиотеки', 'AMOLED', 'Автоозвучка', 'Порядок повторения', 'Сбросить прогресс', 'Резервная копия']) assert.match(all, new RegExp(t));
+  for (const t of ['Вид библиотеки', 'AMOLED', 'Автоозвучка', 'Порядок карточек', 'Оценка знаний', 'Сбросить прогресс', 'Резервная копия']) assert.match(all, new RegExp(t));
   assert.match(app.innerHTML, /data-act="back"/);
   assert.doesNotMatch(app.innerHTML, /<header>.*data-act="goSettings"/);
   for (const [key, v] of [['theme', 'dark'], ['font', 'l'], ['anim', 'off'], ['layout', 'grid'], ['shuffle', 'on']]) await press('setPref', { key, v });
@@ -455,6 +507,7 @@ const drag = async (t, x0, x1, y = 0, id = 1) => {
 
 test('жесты карточки: по кругу в обе стороны, пружина, вертикаль — прокрутка', async () => {
   await press('goStudy');
+  await change('setScope', { value: 'd:1' });
   await press('startStudy', { mode: 'review' });
   assert.equal(state.session.pos, 0);
   await drag(target, 60, 250);                                   // вправо на первой — последняя (по кругу)
@@ -479,6 +532,7 @@ test('жесты карточки: по кругу в обе стороны, п�
 
 test('жесты: быстрый короткий флик листает карточку, диагональный жест не отменяется', async () => {
   await press('goStudy');
+  await change('setScope', { value: 'd:1' });
   await press('startStudy', { mode: 'review' });
   await drag(target, 250, 205);                                  // 45 px, мгновенно — флик
   assert.equal(state.session.pos, 1);

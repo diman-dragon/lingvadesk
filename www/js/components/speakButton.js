@@ -1,3 +1,6 @@
 import button from './button.js';
-/** lang — голос проекта (BCP-47). */
-export default function speakButton(text, lang) { return button({ act: 'speak', cls: 'sm', label: '🔊', data: { t: text, lang } }); }
+import speakIcon from './speakIcon.js';
+/** Круглая кнопка озвучки: size 'lg' — на карточке, 'sm' — у примера; lang — голос проекта (BCP-47). */
+export default function speakButton(text, lang, size = 'lg') {
+  return button({ act: 'speak', cls: `speak ${size}`, label: speakIcon(), aria: 'Озвучить', data: { t: text, lang } });
+}

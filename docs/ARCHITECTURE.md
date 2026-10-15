@@ -28,14 +28,22 @@
 - **Карточки по кругу.** Свайп по карточке: влево — следующая, вправо — предыдущая, после последней — первая (`study/cyclePos`).
 
 ## Учёба (`study/`)
-- Режимы: `srs` — интервальное повторение (просроченные карточки области); `learn` — обучение: пачка из 10 новых слов,
-  знакомство (обе стороны) → проверка с оценками; `review` — простое повторение: все карточки по кругу без оценок,
-  по порядку или вперемешку (настройка `shuffle`).
-- Сессия `{scope, mode, shuffle, key, map, order, pos, phase, total}`; область — `'all' | 'p:<id>' | 'd:<id>'` (`repo/scopeClause`).
-  Оценённая карточка уходит из очереди, «Снова» — в конец. Позиция хранится в таблице `settings` по ключу
-  `session:<область>:<режим>` (SRS каждый раз собирается заново).
-- Формулы `srs/nextSrs`: again → 10 минут; good/hard/easy → интервалы SM-2; ease ≥ 1.3. Подпись «когда вернётся» — `srs/previewLabel`.
-- Переворот — CSS 3D (`components/flipFaces`, `dom/toggleFlip`), без перерисовки; сколько угодно раз.
+- Вкладка «Учёба» («Давай-ка поучим…»): статистика (к повторению · сегодня · дней подряд), плитка **интервального повторения**, выбор области,
+  плитки **обучения** и **случайной колоды**, порядок карточек (`shuffle`).
+- Режимы: `srs` — интервальное повторение: **всегда по всем колодам** (`study/scopeFor`), просроченные карточки; `learn` — обучение: пачка из 10 новых слов
+  выбранной области, знакомство (обе стороны) → проверка; `review` — **случайная колода**: просто карточки, по порядку или вперемешку, расписание не трогается.
+  Выбран проект — `study/pickDeck` берёт случайную непустую колоду (🎲 в шапке сессии — другая, `study/restartSession`); выбрана колода — идёт именно она;
+  выбрана вся библиотека — плитка недоступна (`constants/RANDOM_HINTS`).
+- Сессия `{scope, origin, mode, shuffle, key, map, order, pos, phase, total}`; область — `'all' | 'p:<id>' | 'd:<id>'` (`repo/scopeClause`); `origin` — область, выбранная
+  на вкладке (у случайной колоды `scope` — конкретная колода). Позиция хранится в таблице `settings` по ключу `session:<область>:<режим>` (SRS каждый раз собирается заново).
+- **Оценки кнопками нет — расписание считается по поведению** (`srs/inferGrade`, пороги — `constants/BEHAVIOR`). Пока карточка на экране, `study/track*`
+  копят сигналы (`state/trackState`): время до первого переворота (вспоминание), время на ответе, число переворотов, «пересмотр» (вернулся свайпом назад),
+  «отвлёкся» (один отрезок > 45 с). Время стоит, пока приложение свёрнуто (`events/onVisibility`). Уход вперёд (свайп влево / ›, `study/leaveCard`) — вывод оценки
+  `again | hard | good | easy | null`: `null` (мелькнула < 1,2 с или отвлёкся) расписание не меняет; иначе `gradeCard` обновляет SM-2.
+  Назад (свайп вправо / ‹), «Случайная колода» и знакомство в «Обучении» оценок не дают. «Снова» возвращается через 4 карточки (`BEHAVIOR.againGap`).
+- Счётчик дня и серия подряд — в `settings`, ключ `today` (`study/loadToday`, `study/countToday`).
+- Формулы `srs/nextSrs`: again → 10 минут; good/hard/easy → интервалы SM-2; ease ≥ 1.3.
+- Переворот — CSS 3D (`components/flipFaces`, `dom/toggleFlip`), без перерисовки; сколько угодно раз. Озвучка — круглая кнопка с SVG-динамиком (`components/speakButton`, `speakIcon`).
 
 ## Жесты и `touch-action`
 Все свайпы — Pointer Events (`gestures/`). Чтобы WebView не отнимал жест (`pointercancel`), `touch-action: none` задан на `.view`,
@@ -51,8 +59,8 @@ www/js/
   native/                  обёртки над плагинами (db*, saf*, backup*, ttsSpeak, ttsStop)
   repo/                    по одному SQL-запросу на файл
   settings/                loadPrefs, savePref, setSetting, getSetting, applyPrefs, resolveTheme
-  srs/                     nextSrs, nextInterval, nextEase, previewLabel, isNewCard
-  study/                   startSession, buildOrder, restoreOrder, cyclePos, gradeCard, startQuiz, restartSession, …
+  srs/                     nextSrs, nextInterval, nextEase, inferGrade, isNewCard
+  study/                   startSession, buildOrder, restoreOrder, cyclePos, leaveCard, gradeCard, track*, pickDeck, loadToday, …
   deckio/                  parseImport, parseDeck, parseLibrary, saveLibrary, importLibraryFromFile, exportLibraryToFile, …
   pager/                   layoutPager, perPage, pageCount, setPage
   nav/                     go, popBack, systemBack, goBack, parentOf, render, swipeNavigate, switchRing

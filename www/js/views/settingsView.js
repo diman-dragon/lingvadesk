@@ -16,7 +16,8 @@ export default async function settingsView() {
     settingRow('Анимации', prefControl('anim'));
   const study = settingRow('Что показывать первым', prefControl('dir'), 'Сторона карточки, с которой начинается вопрос') +
     settingRow('Автоозвучка', prefControl('autoplay'), 'Произносить слово, когда оно появляется') +
-    settingRow('Порядок повторения', prefControl('shuffle'));
+    settingRow('Порядок карточек', prefControl('shuffle'), 'Для «Случайной колоды»') +
+    settingRow('Оценка знаний', '<div class="muted">Автоматически: по свайпам, переворотам и времени на карточке</div>');
   const data = settingRow('Резервная копия (.fcbak)', row(button({ act: 'backup', cls: 'p', label: 'Создать' }) + button({ act: 'restore', label: 'Восстановить' })),
     'Перед восстановлением текущая БД сохраняется в защитную копию') +
     settingRow('Прогресс', button({ act: 'resetProgress', cls: 'd', label: 'Сбросить прогресс обучения' }), 'Карточки и колоды останутся');

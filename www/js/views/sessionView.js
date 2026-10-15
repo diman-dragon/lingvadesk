@@ -12,15 +12,16 @@ import studyFace from './studyFace.js';
 import studyControls from './studyControls.js';
 import studyIntroControls from './studyIntroControls.js';
 import studyFinishedView from './studyFinishedView.js';
-/** Экран учёбы: всё помещается без прокрутки; карточки листаются по кругу. */
+/** Экран учёбы: всё помещается без прокрутки. В «Случайной колоде» проекта в шапке — «другая колода». */
 export default async function sessionView() {
-  const s = state.session, card = currentCard(s), dir = state.prefs.dir, intro = isIntro(s);
+  const s = state.session, card = currentCard(s), dir = state.prefs.dir;
+  const other = s.mode === 'review' && s.origin.startsWith('p:') ? button({ act: 'restart', cls: 'sm', label: '🎲', aria: 'Другая колода' }) : '';
   const head = header(MODE_SHORT[s.mode], {
     left: backButton('back'), gear: false,
-    right: button({ act: 'toggleDir', cls: 'sm', label: DIR_LABELS[dir][1] })
+    right: other + button({ act: 'toggleDir', cls: 'sm', label: DIR_LABELS[dir][1] })
   });
   if (!card) return head + studyFinishedView(s);
-  const controls = intro ? studyIntroControls() : studyControls(s, state.revealed);
+  const controls = isIntro(s) ? studyIntroControls() : studyControls();
   return head + progressBar(progressOf(s), `${card.pname} · ${card.dname}`) +
-    studyFace(card, intro || state.revealed, dir) + `<div id="controls">${controls}</div>`;
+    studyFace(card, isIntro(s) || state.revealed, dir) + `<div id="controls">${controls}</div>`;
 }

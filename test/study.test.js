@@ -75,7 +75,7 @@ test('повторение: новые карточки дописываются
   assert.deepEqual(again.order.slice(0, 8), s.order);
 });
 
-test('интервальное повторение: оценка убирает карточку, «Снова» — в конец и +10 минут', async () => {
+test('интервальное повторение: оценка убирает карточку, «Снова» вернётся через 4 карточки и +10 минут', async () => {
   const s = await startSession('all', 'srs', 'off');
   assert.deepEqual([s.order.length, s.total, s.phase], [8, 8, 'quiz']);
   await gradeCard(s, 'good');
@@ -83,12 +83,14 @@ test('интервальное повторение: оценка убирает
   const c = currentCard(s), before = Date.now();
   await gradeCard(s, 'again');
   assert.equal(s.order.length, 7);
-  assert.equal(s.order.at(-1), c.id);
+  assert.equal(s.order[4], c.id);                      // через 4 карточки, а не в самый конец
   assert.ok(c.due >= before + 9.9 * 60000 && c.due <= Date.now() + 10.1 * 60000);
   assert.equal((await startSession('all', 'srs', 'off')).order.length, 6);   // good → завтра, again → через 10 минут
-  for (let i = 0; i < 6; i++) await gradeCard(s, 'easy');
-  assert.equal(s.order.length, 1);                     // осталась «Снова»
-  assert.equal(progressOf(s).text, 'Осталось 1 из 8');
+  for (let i = 0; i < 4; i++) await gradeCard(s, 'easy');
+  assert.equal(currentCard(s).id, c.id);               // «Снова» вернулась
+  await gradeCard(s, 'good');
+  assert.equal(s.order.length, 2);
+  assert.equal(progressOf(s).text, 'Осталось 2 из 8');
 });
 
 test('обучение: знакомство → проверка, фаза и позиция сохраняются; пустая пачка заменяется следующей', async () => {

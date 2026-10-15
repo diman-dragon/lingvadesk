@@ -1,3 +1,4 @@
 import studyStep from '../study/studyStep.js';
-import cyclePos from '../study/cyclePos.js';
-export default function skip() { return studyStep(s => cyclePos(s, 1)); }
+import leaveCard from '../study/leaveCard.js';
+/** Вперёд (свайп влево / ›): карточка оценивается по поведению. */
+export default function skip() { return studyStep(s => leaveCard(s, 1)); }

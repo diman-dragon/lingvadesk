@@ -82,6 +82,7 @@ summary::-webkit-details-marker{display:none}
 /* ===== Учёба: плитки режимов ===== */
 .tile{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border-radius:18px;padding:10px 14px;margin-bottom:8px;box-shadow:var(--shadow)}
 .tile .ti{flex:none;width:46px;height:46px;border-radius:14px;background:var(--surface2);display:grid;place-items:center;font-size:24px}
+.tile.off{opacity:.55}
 .tile .tt{flex:1;min-width:0}
 .tile b{display:block}
 .tile small{display:block;color:var(--muted);font-size:13px;line-height:1.25}
@@ -141,11 +142,18 @@ select{appearance:none;-webkit-appearance:none;background-image:linear-gradient(
 #controls{flex:none}
 #controls .row{margin:0 0 6px}
 .nav-row{align-items:center}
-.row.grade-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.grade{display:flex;flex-direction:column;gap:2px;padding:11px 2px;border:1.5px solid var(--c);color:var(--c)}
-.grade b{font-size:14px}
-.grade small{font-size:12px;opacity:.85}
-.grade.a{--c:var(--again)}.grade.h{--c:var(--hard)}.grade.g{--c:var(--good)}.grade.e{--c:var(--easy)}
+
+/* ===== Озвучка: круглая кнопка со значком-динамиком; волны оживают, пока слово звучит ===== */
+button.speak{display:inline-grid;place-items:center;flex:none;padding:0;border:0;border-radius:50%;color:var(--accent-t);background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 8px 22px var(--glow),inset 0 1px 0 rgba(255,255,255,.28)}
+button.speak.lg{width:88px;height:88px}
+button.speak.lg svg{width:50px;height:50px}
+button.speak.sm{width:40px;height:40px;margin-left:6px;vertical-align:middle;box-shadow:0 4px 12px var(--glow)}
+button.speak.sm svg{width:23px;height:23px}
+button.speak:active{transform:scale(.9)}
+.speak .w1,.speak .w2{opacity:.8}
+.speak.on .w1{animation:wave 1s ease-in-out infinite}
+.speak.on .w2{animation:wave 1s .25s ease-in-out infinite}
+@keyframes wave{0%,100%{opacity:.2}50%{opacity:1}}
 
 /* ===== Анимации и toast ===== */
 @keyframes viewIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}

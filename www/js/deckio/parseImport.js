@@ -7,6 +7,7 @@ import parseLibrary from './parseLibrary.js';
 export default function parseImport(text) {
   let j;
   try { j = JSON.parse(text); } catch { throw new Error('Файл не является корректным JSON'); }
+  if (!j || typeof j !== 'object') throw new Error('Файл не похож на колоду или библиотеку');
   if (j.version !== DECK_VERSION) throw new Error('Неподдерживаемая версия формата');
   if (j.format === DECK_FORMAT) return parseDeck(j);
   if (j.format === LIBRARY_FORMAT) return parseLibrary(j);

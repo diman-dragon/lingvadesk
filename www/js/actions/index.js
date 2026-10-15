@@ -25,7 +25,6 @@ import startStudy from './startStudy.js';
 import startQuiz from './startQuiz.js';
 import gotoPage from './gotoPage.js';
 import flip from './flip.js';
-import grade from './grade.js';
 import skip from './skip.js';
 import prev from './prev.js';
 import restart from './restart.js';
@@ -39,6 +38,6 @@ export default {
   goLibrary, goStudy, goSettings, goProject, goDeck, newProject, editProject, saveProject,
   delProject, newDeck, editDeck, saveDeck, delDeck, newCard, editCard, saveCard,
   delCard, back, toggleLayout, toggleDir, setPref, setScope, studyHere, startStudy,
-  startQuiz, gotoPage, flip, grade, skip, prev, restart, speak,
+  startQuiz, gotoPage, flip, skip, prev, restart, speak,
   importLibrary, exportLibrary, backup, restore, resetProgress
 };

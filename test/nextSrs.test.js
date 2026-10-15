@@ -45,12 +45,3 @@ test('hard и easy: интервалы и ease', () => {
   assert.ok(nextSrs(fresh, 'easy', now).ease > 2.5);
   assert.ok(nextSrs(fresh, 'hard', now).ease < 2.5);
 });
-
-import previewLabel from '../www/js/srs/previewLabel.js';
-
-test('previewLabel: минуты, дни, месяцы', () => {
-  assert.equal(previewLabel(fresh, 'again', now), '10 мин');
-  assert.equal(previewLabel(fresh, 'good', now), '1 д');
-  assert.equal(previewLabel(fresh, 'easy', now), '4 д');
-  assert.equal(previewLabel({ ease: 2.5, interval: 60, reps: 6, due: 0 }, 'good', now), '5 мес');
-});
