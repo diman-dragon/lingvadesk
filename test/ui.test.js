@@ -65,7 +65,8 @@ test('запуск: библиотека, две вкладки внизу, на
   assert.doesNotMatch(page(), /Сегодня|Настройки<\/span>/);
   assert.equal(count(/class="tab on"/), 1);
   assert.match(app.innerHTML, /<header>.*data-act="goSettings"/);
-  for (const t of ['\\+ Проект', 'Импорт', 'Экспорт']) assert.match(page(), new RegExp(t));
+  assert.match(page(), /\+ Проект/);
+  assert.doesNotMatch(page(), /data-act="importLibrary"|data-act="exportLibrary"/);   // импорт и экспорт — в настройках
 });
 
 test('вкладка «Учёба» без карточек: понятная заглушка, панель на месте', async () => {
@@ -81,7 +82,7 @@ test('импорт на самом верхнем уровне: проект →
   assert.match(toastEl.textContent, /проектов 1, колод 1, новых карточек 8/);
   assert.match(page(), /English/);
   assert.match(page(), /колод: 1/);
-  assert.match(page(), /<span class="badge">8<\/span>/);
+  assert.doesNotMatch(page(), /class="badge"/);                 // новые карточки ещё не «к повторению»
   await press('importLibrary');
   assert.match(toastEl.textContent, /новых карточек 0/);       // повторный импорт не дублирует
 });
@@ -90,11 +91,11 @@ test('цепочка проект → колода → карточки; кар�
   const pid = (await listProjects())[0].id;
   await press('goProject', { id: pid });
   assert.match(page(), /Basics/);
-  assert.match(page(), /карточек: 8 · к повторению: 8/);
+  assert.match(page(), /карточек: 8 · к повторению: 0/);
   assert.match(page(), /🎓 Учить/);
   await press('goDeck', { id: 1 });
   assert.match(page(), /apple/);
-  assert.match(page(), /English · 8 карточек · 8 к повторению/);
+  assert.match(page(), /English · 8 карточек · 0 к повторению/);
   assert.match(page(), /\+ Карточка/);
   assert.match(app.innerHTML, /data-act="goSettings"/);
   await press('goStudy');
@@ -210,6 +211,9 @@ test('«Случайная колода»: проект → его колода 
   assert.equal(state.prefs.dir, 'rev');
   assert.match(page(), /<div class="big">яблоко<\/div>/);
   await press('toggleDir');
+  assert.equal(state.prefs.dir, 'mix');                        // Я→П → П→Я → вперемешку → Я→П
+  await press('toggleDir');
+  assert.equal(state.prefs.dir, 'fwd');
   await press('back');
   await change('setScope', { value: 'd:1' });                    // колода — идёт именно она, 🎲 не нужна
   await press('startStudy', { mode: 'review' });
@@ -340,7 +344,7 @@ test('свайпы по кругу: страницы → следующий эк
   await press('goLibrary');
   await swipeNavigate(-1);                                       // перед первой страницей — «Настройки»
   assert.equal(state.nav.v, 'settings');
-  assert.equal(state.page, 3);                                   // последняя из четырёх страниц настроек
+  assert.equal(state.page, 4);                                   // последняя из пяти страниц настроек
   assert.match(page(), /LingvaDesk/);
   assert.match(page(), new RegExp(`Версия ${APP_VERSION.replace(/\./g, '\\.')}`));
   assert.match(page(), /DataLaw/);
@@ -361,13 +365,15 @@ test('внутри проекта страницы листаются по кр�
   assert.equal(state.nav.v, 'project');
 });
 
-test('настройки: четыре страницы, тема/шрифт/анимации/вид применяются и сохраняются', async () => {
+test('настройки: пять страниц, тема/шрифт/анимации/вибрация применяются и сохраняются', async () => {
   setHeight(400);
   await press('goSettings');
   assert.equal(state.pager.fixed, true);
   assert.match(page(), /class="dtab on" data-act="gotoPage" data-i="0">Вид</);
   const all = state.pager.items.join('');
-  for (const t of ['Вид библиотеки', 'AMOLED', 'Автоозвучка', 'Порядок карточек', 'Оценка знаний', 'Сбросить прогресс', 'Резервная копия']) assert.match(all, new RegExp(t));
+  for (const t of ['Тема', 'AMOLED', 'Вибрация', 'Что показывать первым', 'Проверка', 'Автоозвучка', 'Новых карточек в день', 'Карточек за сессию', 'Импорт', 'Экспорт', 'Сбросить прогресс', 'Резервная копия']) assert.match(all, new RegExp(t));
+  assert.doesNotMatch(all, /Вид библиотеки|Порядок карточек/);   // есть на основных экранах
+  assert.equal(count(/class="dtab/, page()), 5);
   assert.match(app.innerHTML, /data-act="back"/);
   assert.doesNotMatch(app.innerHTML, /<header>.*data-act="goSettings"/);
   for (const [key, v] of [['theme', 'dark'], ['font', 'l'], ['anim', 'off'], ['layout', 'grid'], ['shuffle', 'on']]) await press('setPref', { key, v });
@@ -589,4 +595,76 @@ test('удаление проекта каскадно очищает данны
   assert.equal(state.nav.v, 'library');
   assert.doesNotMatch(page(), />English</);
   assert.match(toastEl.textContent, /Проект удалён/);
+});
+
+test('проверка выбором и вводом: ответ переворачивает карточку, неверный — «снова», подсказка, отмена оценки, правка по долгому нажатию', async () => {
+  bridge.reset();
+  bridge.io.picked = deckFile();
+  await press('importLibrary');                                  // прежние тесты удалили библиотеку
+  const deckId = (await listAllDecks())[0].id;
+  await press('goStudy');
+  await change('setScope', { value: `d:${deckId}` });
+  await press('setPref', { key: 'check', v: 'choice' });
+  await press('startStudy', { mode: 'srs' });
+  assert.equal(state.quiz.kind, 'choice');
+  assert.equal(count(/data-act="pick"/), 4);
+  assert.doesNotMatch(app.innerHTML, /class="flip" data-act="flip"/);   // тап по карточке не раскрывает ответ
+  const card = currentCard(state.session), q = state.quiz;
+  const wrong = q.options.findIndex(t => t !== q.answer);
+  flipEl.cls.delete('flipped');
+  wait(1000);
+  await press('pick', { i: wrong });
+  assert.equal(q.result, 'bad');
+  assert.ok(flipEl.cls.has('flipped'));
+  assert.match(fields.controls.innerHTML, /Дальше/);
+  await press('pick', { i: q.options.indexOf(q.answer) });         // повторный ответ игнорируется
+  assert.equal(q.result, 'bad');
+  await press('skip');                                           // неверно → «снова»: карточка вернётся
+  assert.equal(state.session.order.length, 8);
+  assert.equal(state.session.order.includes(card.id), true);
+  assert.match(page(), /data-act="undo"/);
+  await press('undo');
+  assert.equal(currentCard(state.session).id, card.id);
+  assert.equal(card.due, 0);                                     // расписание вернулось
+  assert.doesNotMatch(page(), /data-act="undo"/);
+  await press('setPref', { key: 'check', v: 'type' });
+  await press('back');
+  await press('startStudy', { mode: 'srs' });
+  const t1 = currentCard(state.session);
+  assert.equal(state.quiz.kind, 'type');
+  setFields({ ans: '' });
+  await press('check');
+  assert.match(toastEl.textContent, /Введите ответ/);
+  await press('hint');
+  assert.equal(state.quiz.hint, 1);
+  setFields({ ans: t1.back.toUpperCase() });
+  await press('check');
+  assert.equal(state.quiz.result, 'ok');
+  wait(3000);
+  await press('skip');
+  assert.equal(state.session.order.includes(t1.id), false);      // верно, но с подсказкой → «трудно», карточка ушла из очереди
+  assert.equal(t1.interval, 1);
+  await press('setPref', { key: 'check', v: 'flip' });
+  await press('back');
+});
+
+test('долгое нажатие на карточку открывает её правку; после сохранения сессия показывает новый текст', async () => {
+  const deckId = (await listAllDecks())[0].id;
+  await press('goStudy');
+  await change('setScope', { value: `d:${deckId}` });
+  await press('startStudy', { mode: 'review' });
+  const card = currentCard(state.session);
+  const target = { closest: sel => (/input|button/.test(sel) ? null : flipEl), style: {}, setPointerCapture() {} };
+  onPointerDown({ target, pointerId: 9, clientX: 100, clientY: 100, button: 0 });
+  await new Promise(r => setTimeout(r, 750));
+  assert.equal(state.nav.v, 'cardForm');
+  assert.equal(state.nav.id, card.id);
+  onPointerUp({ pointerId: 9, clientX: 100, clientY: 100 });
+  await press('flip');                                           // клик, который браузер шлёт после отпускания, гасится
+  assert.equal(state.nav.v, 'cardForm');
+  setFields({ f: 'apple!', b: 'яблоко', e: '', et: '', deck: String(card.deck_id) });
+  await press('saveCard');
+  assert.equal(state.nav.v, 'session');
+  assert.equal(currentCard(state.session).front, 'apple!');
+  await press('back');
 });

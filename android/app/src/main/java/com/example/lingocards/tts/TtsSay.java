@@ -5,6 +5,7 @@ import java.util.Locale;
 
 public final class TtsSay {
     public static void run(String text, String lang) throws Exception {
+        for (int i = 0; i < 20 && !TtsHolder.ready; i++) Thread.sleep(100);   // движок ещё запускается — ждём до 2 с
         if (!TtsHolder.ready) throw new Exception("Синтезатор речи не готов");
         int r = TtsHolder.engine.setLanguage(Locale.forLanguageTag(lang));
         if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED)

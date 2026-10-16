@@ -74,10 +74,11 @@ summary::-webkit-details-marker{display:none}
 .empty .ei{font-size:54px}
 .empty h2{color:var(--text);margin:6px 0 4px}
 .empty p{margin:0 0 10px}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 10px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 10px}
+.stats.s3{grid-template-columns:repeat(3,1fr);gap:10px}
 .stat{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:10px 6px;text-align:center;box-shadow:var(--shadow)}
-.stat b{display:block;font-size:26px;line-height:1.1;font-weight:800;color:var(--accent)}
-.stat span{font-size:12px;color:var(--muted)}
+.stat b{display:block;font-size:24px;line-height:1.1;font-weight:800;color:var(--accent)}
+.stat span{font-size:11px;color:var(--muted);display:block;line-height:1.2}
 
 /* ===== Учёба: плитки режимов ===== */
 .tile{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border-radius:18px;padding:10px 14px;margin-bottom:8px;box-shadow:var(--shadow)}
@@ -154,6 +155,28 @@ button.speak:active{transform:scale(.9)}
 .speak.on .w1{animation:wave 1s ease-in-out infinite}
 .speak.on .w2{animation:wave 1s .25s ease-in-out infinite}
 @keyframes wave{0%,100%{opacity:.2}50%{opacity:1}}
+
+/* ===== Вопросы с выбором и вводом, подсказка-пример, итог сессии, статистика ===== */
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 8px}
+button.opt{padding:10px 8px;font-size:15px;line-height:1.2;min-height:48px;overflow-wrap:anywhere;border-width:1.5px}
+button.opt.ok{border-color:var(--good);color:var(--good);font-weight:700}
+button.opt.bad{border-color:var(--again);color:var(--again)}
+input.ans{margin:0 0 8px;font-size:17px;text-align:center}
+.peek{color:var(--accent);animation:viewIn .3s ease-out}
+.verdict{font-weight:700;font-size:15px}
+.verdict.ok{color:var(--good)}.verdict.bad{color:var(--again)}
+.sum{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;margin-top:6px}
+.sum div{background:var(--surface2);border-radius:14px;padding:10px 4px}
+.sum b{display:block;font-size:24px;color:var(--accent)}
+.sum span{font-size:12px;color:var(--muted)}
+.hardwords{font-size:14px;margin-top:4px}
+.bars{display:flex;align-items:flex-end;gap:4px;height:150px;margin:0 0 6px;padding:0 2px}
+.bar{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:2px;min-width:0}
+.bar i{display:block;width:100%;min-height:2px;background:linear-gradient(180deg,var(--accent2),var(--accent));border-radius:6px 6px 2px 2px}
+.bar em{font-style:normal;font-size:10px;color:var(--muted)}
+.bar span{font-size:10px;color:var(--muted)}
+.bar.today span{color:var(--accent);font-weight:700}
+.note{font-size:13px;margin-top:8px}
 
 /* ===== Анимации и toast ===== */
 @keyframes viewIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}

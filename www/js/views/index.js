@@ -4,10 +4,11 @@ import deckView from './deckView.js';
 import studyHubView from './studyHubView.js';
 import sessionView from './sessionView.js';
 import settingsView from './settingsView.js';
+import statsView from './statsView.js';
 import projectFormView from './projectFormView.js';
 import deckFormView from './deckFormView.js';
 import cardFormView from './cardFormView.js';
 export default {
-  library: libraryView, project: projectView, deck: deckView, study: studyHubView, session: sessionView, settings: settingsView,
+  library: libraryView, project: projectView, deck: deckView, study: studyHubView, session: sessionView, settings: settingsView, stats: statsView,
   projectForm: projectFormView, deckForm: deckFormView, cardForm: cardFormView
 };

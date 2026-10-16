@@ -2,6 +2,7 @@ import { appEl } from '../dom/appEl.js';
 import dispatch from './dispatch.js';
 import onResize from './onResize.js';
 import onVisibility from './onVisibility.js';
+import onKeydown from './onKeydown.js';
 import systemBack from '../nav/systemBack.js';
 import onPointerDown from '../gestures/onPointerDown.js';
 import onPointerMove from '../gestures/onPointerMove.js';
@@ -9,6 +10,7 @@ import onPointerUp from '../gestures/onPointerUp.js';
 import onPointerCancel from '../gestures/onPointerCancel.js';
 export default function bindEvents() {
   ['click', 'change'].forEach(t => appEl.addEventListener(t, dispatch));
+  appEl.addEventListener('keydown', onKeydown);
   appEl.addEventListener('pointerdown', onPointerDown);
   appEl.addEventListener('pointermove', onPointerMove);
   appEl.addEventListener('pointerup', onPointerUp);

@@ -1,4 +1,5 @@
 import { state } from '../state/appState.js';
+import { BEHAVIOR } from '../constants/BEHAVIOR.js';
 import getDeckWithProject from '../repo/getDeckWithProject.js';
 import listCards from '../repo/listCards.js';
 import header from '../components/header.js';
@@ -13,8 +14,8 @@ import row from '../components/row.js';
 /** Колода: карточки живут только здесь (и в формах), на вкладке «Учёба» их списка нет. */
 export default async function deckView() {
   const [deck, cards] = await Promise.all([getDeckWithProject(state.nav.id), listCards(state.nav.id)]);
-  const due = cards.filter(c => c.due <= Date.now()).length;
-  const items = cards.map(c => entry({ act: 'editCard', id: c.id, title: c.front, sub: c.back }));
+  const due = cards.filter(c => c.due > 0 && c.due <= Date.now()).length;
+  const items = cards.map(c => entry({ act: 'editCard', id: c.id, title: (c.agains >= BEHAVIOR.leech ? '🐛 ' : '') + c.front, sub: c.back }));
   const body = items.length ? pagedList(items) : emptyState({ icon: '🃏', title: 'Карточек нет', text: 'Добавьте первую карточку.' });
   const actions = button({ act: 'newCard', cls: 'p', label: '+ Карточка' }) + button({ act: 'studyHere', label: '🎓 Учить', data: { scope: `d:${deck.id}` } });
   return header(deck.name, { left: backButton('goProject', deck.language_id), right: layoutToggle() + editButton('editDeck') }) +

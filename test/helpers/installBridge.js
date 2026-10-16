@@ -2,14 +2,14 @@ import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 
 const SCHEMA = 'android/app/src/main/java/com/example/lingocards/db/Schema.java';
-const TABLES = ['deck_state', 'cards', 'decks', 'languages', 'settings'];
+const TABLES = ['reviews', 'cards', 'decks', 'languages', 'settings'];
 
 /** Подменяет Capacitor-мост: SQLite в памяти (схема берётся из Schema.java) + заглушки SAF. */
 export default function installBridge() {
   const db = new DatabaseSync(':memory:');
   db.exec('PRAGMA foreign_keys=ON');
   readFileSync(SCHEMA, 'utf8').match(/"(CREATE[^"]+)"/g).forEach(s => db.exec(s.slice(1, -1)));
-  const io = { picked: null, saved: null, spoken: null };
+  const io = { picked: null, saved: null, spoken: null, awake: null };
   const lastId = () => Number(db.prepare('SELECT last_insert_rowid() i').get().i);
   const handlers = {
     // как в Java: rawQuery принимает только строки
@@ -21,7 +21,8 @@ export default function installBridge() {
     BackupCreate: () => ({ data: 'AAAA' }),
     BackupRestore: () => ({ safety: 'pre-restore-1.db' }),
     TtsSpeak: a => { io.spoken = a; return {}; },
-    TtsStop: () => ({})
+    TtsStop: () => ({}),
+    KeepAwake: a => { io.awake = a.on; return {}; }
   };
   // как в реальном WebView без бандлера: есть nativePromise, но НЕТ registerPlugin
   globalThis.Capacitor = { nativePromise: async (name, method, a) => handlers[name](a) };

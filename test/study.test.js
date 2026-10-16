@@ -42,7 +42,7 @@ test('область учёбы: вся библиотека / проект / к
   const c = (await listCardsInScope(`d:${d2}`))[0];
   assert.deepEqual([c.tts, c.pname, c.dname], ['ru-RU', 'Даты', 'XX век']);
   const s = await getScopeStats(`p:${projectId}`);
-  assert.deepEqual([s.total, s.due, s.fresh, s.mature], [8, 8, 8, 0]);
+  assert.deepEqual([s.total, s.due, s.fresh, s.mature], [8, 0, 8, 0]);   // новые карточки — не «к повторению»
   await deleteProject(p2);
   assert.equal(validScope(`d:${d2}`, await listProjects(), await listAllDecks()), 'all');
   assert.equal(validScope(`p:${projectId}`, await listProjects(), await listAllDecks()), `p:${projectId}`);

@@ -7,6 +7,7 @@ import updateCard from '../repo/updateCard.js';
 import moveCard from '../repo/moveCard.js';
 import insertCards from '../repo/insertCards.js';
 import nextCardOrd from '../repo/nextCardOrd.js';
+import refreshCard from '../study/refreshCard.js';
 import goBack from '../nav/goBack.js';
 import go from '../nav/go.js';
 /** data-more — сохранить и открыть пустую форму для следующей карточки. */
@@ -17,6 +18,7 @@ export default async function saveCard(d) {
   if (id) {
     const old = await getCard(id);
     await updateCard(id, card);
+    refreshCard(state.session, id, card);
     if (old.deck_id !== deckId) await moveCard(id, deckId, await nextCardOrd(deckId));
   } else await insertCards(deckId, [card], await nextCardOrd(deckId));
   toast('Сохранено');

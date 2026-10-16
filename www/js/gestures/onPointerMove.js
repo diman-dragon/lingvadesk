@@ -1,6 +1,7 @@
 import { swipe } from './swipeState.js';
 import { SWIPE } from '../constants/SWIPE.js';
 import followCard from './followCard.js';
+import cancelHold from './cancelHold.js';
 /** Горизонтальное смещение сверх допуска — свайп. Отмена только для явно вертикального жеста (прокрутки в приложении нет). */
 export default function onPointerMove(e) {
   const { el } = swipe;
@@ -10,6 +11,7 @@ export default function onPointerMove(e) {
     if (Math.abs(dy) >= 30 && Math.abs(dy) > SWIPE.vertical * Math.abs(dx)) { swipe.el = null; return; }
     if (Math.abs(dx) < SWIPE.slop) return;
     swipe.moved = true;
+    cancelHold();
     if (swipe.kind === 'card') { el.setPointerCapture?.(e.pointerId); el.style.transition = 'none'; }
   }
   swipe.dx = dx;

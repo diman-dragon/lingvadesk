@@ -13,5 +13,5 @@ public class DbHelper extends SQLiteOpenHelper {
         db.setForeignKeyConstraintsEnabled(true);
     }
     @Override public void onCreate(SQLiteDatabase db) { CreateSchema.run(db); }
-    @Override public void onUpgrade(SQLiteDatabase db, int from, int to) { /* миграции */ }
+    @Override public void onUpgrade(SQLiteDatabase db, int from, int to) { Migrate.run(db, from); }
 }

@@ -4,21 +4,24 @@ import loadSavedState from './loadSavedState.js';
 import restoreOrder from './restoreOrder.js';
 import buildOrder from './buildOrder.js';
 import saveState from './saveState.js';
+import loadCalibration from './loadCalibration.js';
+import { NO_LIMITS } from '../constants/NO_LIMITS.js';
 /**
- * session = { scope, origin, mode, shuffle, key, map(id→карточка), order[], pos, phase, total }.
+ * session = { scope, origin, mode, shuffle, key, map(id→карточка), order[], pos, phase, total, limits, calib, log[], dirs{}, undo }.
+ * limits — дневной лимит новых и размер сессии (только srs); calib — пороги оценки под человека; log — итог сессии; undo — что отменяет «↶».
  * origin — область, выбранная на вкладке «Учёба» (у случайной колоды scope — конкретная колода).
  * srs собирается заново; learn и review продолжаются с сохранённого места.
  */
-export default async function startSession(scope, mode, shuffle, origin = scope) {
+export default async function startSession(scope, mode, shuffle, origin = scope, limits = NO_LIMITS) {
   const cards = await listCardsInScope(scope);
   const map = new Map(cards.map(c => [c.id, c]));
   const key = sessionKey(scope, mode, shuffle);
   const saved = mode === 'srs' ? null : await loadSavedState(key);
   const kept = saved ? restoreOrder(saved.order, map, mode) : [];
   const resume = kept.length > 0;
-  const order = resume ? kept : buildOrder(mode, cards, shuffle);
+  const order = resume ? kept : buildOrder(mode, cards, shuffle, limits);
   const session = {
-    scope, origin, mode, shuffle, key, map, order,
+    scope, origin, mode, shuffle, key, map, order, limits, calib: await loadCalibration(), log: [], dirs: {}, undo: null,
     phase: resume ? saved.phase : (mode === 'learn' && order.length ? 'intro' : 'quiz'),
     total: resume ? Math.max(saved.total, order.length) : order.length,
     pos: resume ? Math.min(saved.pos, order.length - 1) : 0
