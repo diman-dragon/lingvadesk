@@ -14,7 +14,8 @@ import restart from './restart.js';
 import speak from './speak.js';
 import play from './play.js';
 import showText from './showText.js';
-/** Учёба: настройки, запуск, карточка (переворот, листание, ответы, отмена), озвучка и режим «На слух». */
+import record from './record.js';
+/** Учёба: настройки, запуск, карточка (переворот, листание, ответы, отмена), озвучка и режимы «На слух» и «Говорить». */
 export default {
-  toggleDir, setPref, startStudy, flip, pick, check, hint, giveUp, undo, editSessionCard, skip, prev, restart, speak, play, showText
+  toggleDir, setPref, startStudy, flip, pick, check, hint, giveUp, undo, editSessionCard, skip, prev, restart, speak, play, showText, record
 };

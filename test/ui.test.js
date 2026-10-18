@@ -37,6 +37,7 @@ const consumeSuppress = await imp('gestures/consumeSuppress.js');
 const { APP_VERSION } = await import('../www/js/constants/APP_VERSION.js');
 const currentCard = await imp('study/currentCard.js');
 const listReviewsSince = await imp('repo/listReviewsSince.js');
+const listPronunciationsSince = await imp('repo/listPronunciationsSince.js');
 const onVisibility = await imp('events/onVisibility.js');
 const { track } = await import('../www/js/state/trackState.js');
 
@@ -205,6 +206,37 @@ test('«На слух»: плеер вместо текста, «Показат�
   const last = (await listReviewsSince(0)).at(-1);
   assert.deepEqual([last.mode, last.grade, Number(last.hinted), Number(last.plays), last.fresh], ['listen', 'good', 1, 1, 0]);
   assert.equal(card.due, due);                                    // расписание не двигается
+  await press('setPref', { key: 'mode', v: 'srs' });
+  await press('back');
+});
+
+test('«Говорить»: микрофон → оценка сходства, попытка пишется в базу, оценка карточки по произношению', async () => {
+  await press('goStudy');
+  await press('setPref', { key: 'mode', v: 'speak' });
+  await press('startStudy', { id: 1 });
+  assert.equal(state.session.mode, 'speak');
+  assert.match(app.innerHTML, /data-act="record"/);
+  assert.match(app.innerHTML, /Скажите вслух/);
+  assert.match(app.innerHTML, /class="big hidtext" hidden>apple/);
+  assert.doesNotMatch(app.innerHTML, /data-act="toggleDir"/);
+  bridge.io.heard = new Error('Не расслышал: нажмите микрофон и скажите ещё раз');
+  await press('record', { lang: 'en-US' });
+  assert.match(toastEl.textContent, /Не расслышал/);
+  assert.deepEqual([state.speech, state.listening], [null, false]);
+  bridge.io.heard = { text: 'aple', confidence: 0.6, alternatives: ['apple'], audio: null };
+  await press('record', { lang: 'en-US' });
+  assert.deepEqual(bridge.io.listened, { lang: 'en-US' });
+  assert.deepEqual([state.speech.attempts, state.speech.score], [1, 0.94]);
+  assert.match(fields.speechres.innerHTML, /94%/);
+  await press('skip');
+  const last = (await listReviewsSince(0)).at(-1);
+  assert.deepEqual([last.mode, last.grade], ['speak', 'easy']);
+  assert.equal(state.speech, null);                                // у следующей карточки попыток ещё нет
+  assert.equal((await listPronunciationsSince(0)).length, 1);
+  const n = (await listReviewsSince(0)).length;
+  await press('skip');                                           // без попытки оценки нет: в историю ничего не добавилось
+  assert.equal((await listReviewsSince(0)).length, n);
+  bridge.io.heard = null;
   await press('setPref', { key: 'mode', v: 'srs' });
   await press('back');
 });
@@ -636,15 +668,15 @@ test('долгое нажатие на карточку открывает её 
   await press('back');
 });
 
-test('статистика: четыре страницы, всё из истории в базе', async () => {
+test('статистика: пять страниц, всё из истории в базе', async () => {
   setHeight(500);
   await press('goStudy');
   await press('goStats');
   assert.equal(state.nav.v, 'stats');
   assert.equal(state.pager.fixed, true);
-  assert.equal(count(/class="dtab/, page()), 4);
+  assert.equal(count(/class="dtab/, page()), 5);
   const all = state.pager.items.join('');
-  for (const t of ['Обзор', 'сегодня', '7 дней', '30 дней', 'всего', 'удержание', 'лучшая серия', 'выучено', 'Повторений по дням', 'Оценки за 30 дней', 'Снова', 'на слух', 'с подсказкой', 'вспоминание', 'Колоды', 'Basics', 'Чаще всего', 'Придёт на повторение']) assert.match(all, new RegExp(t));
+  for (const t of ['Обзор', 'сегодня', '7 дней', '30 дней', 'всего', 'удержание', 'лучшая серия', 'выучено', 'Повторений по дням', 'Оценки за 30 дней', 'Снова', 'на слух', 'с подсказкой', 'вспоминание', 'Колоды', 'Basics', 'Чаще всего', 'Придёт на повторение', 'Речь', 'попыток', 'средняя оценка', 'Попыток по дням']) assert.match(all, new RegExp(t));
   assert.match(app.innerHTML, /data-act="back"/);
   await press('back');
   assert.equal(state.nav.v, 'study');

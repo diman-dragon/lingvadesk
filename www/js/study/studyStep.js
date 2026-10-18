@@ -7,6 +7,7 @@ export default async function studyStep(op, anim = 'card-in') {
   await op(state.session);
   state.revealed = false;
   state.quiz = null;
+  state.speech = null;
   state.anim = anim;
   await render();
   trackShow(state.session, anim === 'card-back');

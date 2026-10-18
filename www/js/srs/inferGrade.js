@@ -1,4 +1,5 @@
 import { BEHAVIOR } from '../constants/BEHAVIOR.js';
+import speechGrade from './speechGrade.js';
 const level = (v, [a, b]) => +(v >= a) + +(v >= b);
 /** Вопрос с выбором / вводом: верно → по времени ответа, подсказка — трудно, неверно — снова; без ответа — не оцениваем. */
 const byAnswer = ({ think, correct, hinted, kind }, B) => {
@@ -9,7 +10,7 @@ const byAnswer = ({ think, correct, hinted, kind }, B) => {
 };
 /**
  * Оценка по поведению. null — карточку просто пролистали или отвлеклись: расписание не трогаем.
- * Без переворота: ушёл быстро — знает (good, у зрелых easy), долго мялся — hard; в «На слух» без перевода оценки нет.
+ * Без переворота: ушёл быстро — знает (good, у зрелых easy), долго мялся — hard; в «На слух» без перевода оценки нет; в «Говорить» оценка — по произношению (srs/speechGrade), без попытки её нет.
  * С переворотом «трудность» набирается из: долго вспоминал, долго читал ответ, метался туда-обратно, возвращался свайпом назад,
  * перевернул не вспоминая и читал ответ, подсматривал текст («На слух»), многократно переслушивал. 0 — лёгкая, 1 — хорошо, 2 — трудно, 3+ — снова.
  * B — пороги (по умолчанию общие; после калибровки — подстроенные под человека, srs/calibrate).
@@ -17,6 +18,7 @@ const byAnswer = ({ think, correct, hinted, kind }, B) => {
 export default function inferGrade(sig, card, B = BEHAVIOR) {
   const { think, look, dwell, flips, revisit, away, kind, hinted, plays, listen } = sig;
   if (away) return null;
+  if (sig.speak) return sig.score == null ? null : speechGrade(sig.score, sig.attempts, hinted);   // «Говорить»: по произношению
   if (kind) return byAnswer(sig, B);
   if (dwell < B.noise) return null;
   if (think === null) return listen ? null : dwell >= B.think[1] ? 'hard' : dwell < B.known && card.reps >= 2 ? 'easy' : 'good';

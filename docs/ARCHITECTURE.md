@@ -34,6 +34,11 @@
   Область сессии — `'all' | 'p:<id>' | 'd:<id>'` (`repo/scopeClause`).
 - `srs` — интервальное повторение: просроченные (давние первыми) + новые, **не больше `newPerDay` на каждую колоду** (`study/buildOrder`, `study/loadLimits`), всё не больше `sessionMax`.
 - `listen` — «На слух»: `views/listenFace` (плеер, спрятанный текст, `actions/showText`, `actions/play`), давно не слушанные первыми (`ll` в `repo/listCardsInScope`); пишет только историю.
+- `speak` — «Говорить» (проверка произношения): `views/speakFace` (перевод + микрофон), `actions/record` → `native/speechListen` → плагин `speech/SpeechListenPlugin`
+  (Android `SpeechRecognizer`, сервисы Google, офлайн-пакет предпочтителен, язык — голос проекта). `study/scoreSpeech`: сходство услышанного с `card.front`
+  (лучший из вариантов, по символам, уверенность слегка смещает), `srs/speechGrade`: оценка карточки (границы — `constants/SPEECH`). Каждая попытка — строка в
+  `pronunciations`; записи голоса **не сохраняются** (плагин возвращает `audio: null`, колонка и поле предусмотрены). Расписание не двигается, в `reviews` — режим `speak`.
+  Другой движок (Vosk / Whisper) подключается заменой `native/speechListen`; чьё именно распознавание — в `pronunciations.engine`.
 - Оценок кнопками нет: `srs/inferGrade` выводит оценку из поведения (`study/track*`: время до переворота и на ответе, перевороты, возвраты, прослушивания, подсказка);
   калибровка порогов — `srs/calibrate`; вопросы выбором / вводом — `study/makeQuiz`, `study/finishQuiz`. `study/gradeCard` пишет в `reviews` и (в `srs`) двигает SM-2 (`srs/nextSrs`);
   `study/undoGrade` откатывает последнюю оценку; «пиявки» — `study/checkLeech`.

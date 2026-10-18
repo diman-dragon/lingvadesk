@@ -23,15 +23,15 @@ export default async function studyHubView() {
   if (!sum(decks, d => d.total)) {
     return top + emptyState({ icon: '🃏', title: 'Здесь пока нет карточек', text: 'Добавьте карточки в библиотеке.', actions: row(button({ act: 'goLibrary', cls: 'p', label: 'В библиотеку' })) });
   }
-  const listen = state.prefs.mode === 'listen';
+  const plain = state.prefs.mode !== 'srs';
   const info = decks.map(d => {
     const fresh = Math.min(d.fresh, Math.max(0, lim.perDay - (lim.used[d.id] ?? 0)));
-    return { ...d, fresh, count: listen ? Math.min(d.total, lim.max) : d.due + fresh };
+    return { ...d, fresh, count: plain ? Math.min(d.total, lim.max) : d.due + fresh };
   });
   const due = sum(info, d => d.due), fresh = sum(info, d => d.fresh);
   const stats = row(statCard(due, 'к повторению') + statCard(fresh, 'новых') + statCard(today.n, 'сегодня') + statCard(today.current, 'дней подряд'), 'stats');
-  const sub = d => (listen ? `${d.pname} · карточек ${d.total}` : `${d.pname} · повторить ${d.due} · новых ${d.fresh} · выучено ${d.mature}/${d.total}`);
-  const items = [allTile(Math.min(sum(info, d => d.count), lim.max), listen ? `${sum(info, d => d.total)} карточек` : `повторить ${due} · новых ${fresh}`)]
+  const sub = d => (plain ? `${d.pname} · карточек ${d.total}` : `${d.pname} · повторить ${d.due} · новых ${d.fresh} · выучено ${d.mature}/${d.total}`);
+  const items = [allTile(Math.min(sum(info, d => d.count), lim.max), plain ? `${sum(info, d => d.total)} карточек` : `повторить ${due} · новых ${fresh}`)]
     .concat(info.map(d => entry({ act: 'startStudy', id: d.id, title: d.name, sub: sub(d), badge: d.count, avatarText: d.name })));
   return top + stats + `<div class="order"><span>Режим</span>${prefControl('mode')}</div>` + pagedList(items);
 }

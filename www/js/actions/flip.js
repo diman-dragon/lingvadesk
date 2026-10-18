@@ -1,4 +1,5 @@
 import { state } from '../state/appState.js';
+import { track } from '../state/trackState.js';
 import toggleFlip from '../dom/toggleFlip.js';
 import buzz from '../dom/buzz.js';
 import trackFlip from '../study/trackFlip.js';
@@ -8,6 +9,7 @@ export default async function flip() {
   const showingBack = toggleFlip();
   buzz();
   trackFlip();
+  if (state.session?.mode === 'speak' && !state.speech) track.hinted = true;   // посмотрел ответ до попытки — это подсказка
   if (!showingBack || state.revealed) return;
   state.revealed = true;
   await autoSpeak('reveal');

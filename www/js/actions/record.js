@@ -1,0 +1,32 @@
+import { state } from '../state/appState.js';
+import { SPEECH } from '../constants/SPEECH.js';
+import speechListen from '../native/speechListen.js';
+import insertPronunciation from '../repo/insertPronunciation.js';
+import currentCard from '../study/currentCard.js';
+import scoreSpeech from '../study/scoreSpeech.js';
+import speechResult from '../views/speechResult.js';
+import buzz from '../dom/buzz.js';
+import toast from '../dom/toast.js';
+/** Микрофон в «Говорить»: слушаем одну попытку, оцениваем сходство с текстом карточки, пишем попытку в базу (pronunciations). */
+export default async function record(d, el) {
+  const card = state.session && currentCard(state.session);
+  if (!card || state.listening) return;
+  const box = document.getElementById('speechres');
+  state.listening = true;
+  el?.classList?.add('rec');
+  box.innerHTML = '<div class="sres">Слушаю…</div>';
+  try {
+    const r = await speechListen(card.tts);
+    const score = scoreSpeech(r, card.front), prev = state.speech?.id === card.id ? state.speech.attempts : 0;
+    await insertPronunciation(card.id, { engine: SPEECH.engine, transcript: r.text, score, audio: r.audio ?? null });
+    state.speech = { id: card.id, heard: r.text, score, attempts: prev + 1 };
+    box.innerHTML = speechResult(state.speech);
+    buzz(score >= SPEECH.good ? 12 : [30, 40, 30]);
+  } catch (e) {
+    box.innerHTML = state.speech?.id === card.id ? speechResult(state.speech) : '';
+    toast(e.message || 'Не удалось распознать речь');
+  } finally {
+    state.listening = false;
+    el?.classList?.remove('rec');
+  }
+}

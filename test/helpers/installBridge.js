@@ -9,7 +9,7 @@ export default function installBridge() {
   const db = new DatabaseSync(':memory:');
   db.exec('PRAGMA foreign_keys=ON');
   readFileSync(SCHEMA, 'utf8').match(/"(CREATE[^"]+)"/g).forEach(s => db.exec(s.slice(1, -1)));
-  const io = { picked: null, saved: null, spoken: null, awake: null };
+  const io = { picked: null, saved: null, spoken: null, awake: null, listened: null, heard: null };
   const lastId = () => Number(db.prepare('SELECT last_insert_rowid() i').get().i);
   const handlers = {
     // как в Java: rawQuery принимает только строки
@@ -22,6 +22,7 @@ export default function installBridge() {
     BackupRestore: () => ({ safety: 'pre-restore-1.db' }),
     TtsSpeak: a => { io.spoken = a; return {}; },
     TtsStop: () => ({}),
+    SpeechListen: a => { io.listened = a; if (io.heard instanceof Error) throw io.heard; return io.heard; },
     KeepAwake: a => { io.awake = a.on; return {}; }
   };
   // как в реальном WebView без бандлера: есть nativePromise, но НЕТ registerPlugin

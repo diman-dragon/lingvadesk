@@ -10,6 +10,7 @@ export default async function openStudy(mode, scope) {
   if (!session.map.size) throw new Error('В колоде нет карточек');
   state.session = session;
   state.quiz = null;
+  state.speech = null;
   await go('session');
   trackShow(session);
   await autoSpeak('show');
