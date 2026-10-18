@@ -1,14 +1,13 @@
 import { state } from '../state/appState.js';
 import currentCard from './currentCard.js';
 import cardDir from './cardDir.js';
-import isIntro from './isIntro.js';
 import speakText from '../tts/speakText.js';
-/** Автоозвучка слова: в знакомстве — сразу; иначе при показе (Я→П) или при открытии ответа (П→Я). */
+/** Озвучка слова: «На слух» — при показе карточки всегда; иначе по настройке — при показе (Я→П) или при открытии ответа (П→Я). */
 export default async function autoSpeak(trigger) {
   const { session, prefs } = state;
   const card = session && currentCard(session);
-  if (!card || prefs.autoplay !== 'on') return;
-  const fwd = cardDir(session, card) === 'fwd';
-  const speak = isIntro(session) ? trigger === 'show' : fwd ? trigger === 'show' : trigger === 'reveal';
-  if (speak) await speakText(card.front, card.tts);
+  if (!card) return;
+  const listen = session.mode === 'listen';
+  if (!listen && prefs.autoplay !== 'on') return;
+  if (listen ? trigger === 'show' : cardDir(session, card) === 'fwd' ? trigger === 'show' : trigger === 'reveal') await speakText(card.front, card.tts);
 }

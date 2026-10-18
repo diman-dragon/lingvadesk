@@ -146,6 +146,8 @@ select{appearance:none;-webkit-appearance:none;background-image:linear-gradient(
 
 /* ===== Озвучка: круглая кнопка со значком-динамиком; волны оживают, пока слово звучит ===== */
 button.speak{display:inline-grid;place-items:center;flex:none;padding:0;border:0;border-radius:50%;color:var(--accent-t);background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 8px 22px var(--glow),inset 0 1px 0 rgba(255,255,255,.28)}
+button.speak.xl{width:120px;height:120px;margin:6px 0}
+button.speak.xl svg{width:68px;height:68px}
 button.speak.lg{width:88px;height:88px}
 button.speak.lg svg{width:50px;height:50px}
 button.speak.sm{width:40px;height:40px;margin-left:6px;vertical-align:middle;box-shadow:0 4px 12px var(--glow)}
@@ -177,6 +179,17 @@ input.ans{margin:0 0 8px;font-size:17px;text-align:center}
 .bar span{font-size:10px;color:var(--muted)}
 .bar.today span{color:var(--accent);font-weight:700}
 .note{font-size:13px;margin-top:8px}
+
+/* ===== Статистика ===== */
+.group h4{margin:10px 0 6px;font-size:14px;color:var(--muted)}
+.grow{display:flex;align-items:center;gap:8px;margin:5px 0}
+.grow span{width:62px;font-size:13px;color:var(--muted)}
+.grow b{width:34px;text-align:right;font-size:14px}
+.gbar{flex:1;height:12px;background:var(--surface2);border-radius:8px;overflow:hidden}
+.gbar i{display:block;height:100%;border-radius:8px;background:var(--accent)}
+.gbar i.again{background:var(--again)}.gbar i.hard{background:#e0a030}.gbar i.good{background:var(--good)}.gbar i.easy{background:var(--accent2)}
+.drow{margin:8px 0}.drow b{display:block;font-size:14px}.drow span{display:block;font-size:12px;color:var(--muted);margin:2px 0 4px}
+.hrow{display:flex;justify-content:space-between;gap:8px;margin:5px 0;font-size:14px}.hrow em{font-style:normal;color:var(--again);font-weight:700}
 
 /* ===== Анимации и toast ===== */
 @keyframes viewIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}

@@ -1,11 +1,10 @@
 import shuffle from '../util/shuffle.js';
-import isIntro from './isIntro.js';
 /**
- * Вопрос с выбором или вводом (настройка «Проверка») для проверки в «Интервальном повторении» и «Обучении».
- * null — обычный переворот (случайная колода, знакомство, нечего выбирать). Варианты — ответы других карточек области.
+ * Вопрос с выбором или вводом (настройка «Проверка»); null — обычный переворот или нечего выбирать.
+ * Варианты — ответы других карточек области. dir — какая сторона отвечает: 'fwd' — перевод, 'rev' — слово.
  */
 export default function makeQuiz(session, card, dir, check) {
-  if (check === 'flip' || session.mode === 'review' || isIntro(session)) return null;
+  if (check === 'flip') return null;
   const text = c => (dir === 'fwd' ? c.back : c.front);
   const answer = text(card), base = { id: card.id, answer, result: null, hint: 0, typed: '' };
   if (check === 'type') return { ...base, kind: 'type' };

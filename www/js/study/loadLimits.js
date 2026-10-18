@@ -1,8 +1,7 @@
 import { state } from '../state/appState.js';
-import countNewToday from '../repo/countNewToday.js';
+import countNewByDeck from '../repo/countNewByDeck.js';
 import dayStart from '../util/dayStart.js';
-/** Лимиты интервального повторения: новых карточек на сегодня осталось и размер сессии (настройки «Лимиты»). */
+/** Лимиты из настроек + сколько новых уже начато сегодня по каждой колоде (читаем из базы): perDay, used, max. */
 export default async function loadLimits() {
-  const used = await countNewToday(dayStart());
-  return { newLeft: Math.max(0, Number(state.prefs.newPerDay) - used), max: Number(state.prefs.sessionMax) };
+  return { perDay: Number(state.prefs.newPerDay), used: await countNewByDeck(dayStart()), max: Number(state.prefs.sessionMax) };
 }

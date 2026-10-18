@@ -5,9 +5,7 @@ import deckFile from './helpers/deckFile.js';
 import importLibraryFromFile from '../www/js/deckio/importLibraryFromFile.js';
 import saveLibrary from '../www/js/deckio/saveLibrary.js';
 import parseImport from '../www/js/deckio/parseImport.js';
-import insertProject from '../www/js/repo/insertProject.js';
-import insertDeck from '../www/js/repo/insertDeck.js';
-import insertCards from '../www/js/repo/insertCards.js';
+import insertReview from '../www/js/repo/insertReview.js';
 import listAllDecks from '../www/js/repo/listAllDecks.js';
 import inferGrade from '../www/js/srs/inferGrade.js';
 import trackShow from '../www/js/study/trackShow.js';
@@ -19,11 +17,7 @@ import leaveCard from '../www/js/study/leaveCard.js';
 import startSession from '../www/js/study/startSession.js';
 import gradeCard from '../www/js/study/gradeCard.js';
 import currentCard from '../www/js/study/currentCard.js';
-import randomCandidates from '../www/js/study/randomCandidates.js';
-import pickDeck from '../www/js/study/pickDeck.js';
-import restartSession from '../www/js/study/restartSession.js';
 import loadToday from '../www/js/study/loadToday.js';
-import countToday from '../www/js/study/countToday.js';
 import dayKey from '../www/js/util/dayKey.js';
 
 const bridge = installBridge();
@@ -71,7 +65,7 @@ test('оценка по поведению: вспоминал, читал от�
 });
 
 test('трекер: время до переворота и на ответе, переворот туда-обратно, пауза, «отвлёкся»', async () => {
-  const s = await startSession('all', 'srs', 'off');
+  const s = await startSession('all', 'srs');
   trackShow(s); tick(2500); trackFlip(); tick(3500);
   let x = trackSignals();
   assert.deepEqual([x.think, x.look, x.dwell, x.flips, x.revisit, x.away], [2500, 3500, 6000, 1, false, false]);
@@ -85,8 +79,8 @@ test('трекер: время до переворота и на ответе, �
   assert.equal(trackSignals().away, true);
 });
 
-test('уход с карточки: вперёд — оценка по поведению, назад / случайная колода / знакомство — без оценки', async () => {
-  const s = await startSession('all', 'srs', 'off');
+test('уход с карточки: вперёд — оценка по поведению, назад и мелькнувшая — без оценки', async () => {
+  const s = await startSession('all', 'srs');
   trackShow(s);
   const a = currentCard(s);
   tick(2000); trackFlip(); tick(2000);
@@ -101,69 +95,36 @@ test('уход с карточки: вперёд — оценка по пове�
   trackShow(s); tick(300);
   await leaveCard(s, 1);                                // мелькнула — не оцениваем
   assert.equal(s.order.length, 7);
-  assert.equal((await loadToday(t)).n, 1);              // в счётчик дня попала одна карточка
-
-  const deck = (await listAllDecks())[0].id;
-  const r = await startSession(`d:${deck}`, 'review', 'off');
-  trackShow(r); tick(2000); trackFlip(); tick(2000);
-  const c = currentCard(r), due = c.due;
-  await leaveCard(r, 1);
-  assert.deepEqual([r.order.length, r.pos, c.due], [8, 1, due]);   // расписание не изменилось
-
-  const l = await startSession('all', 'learn', 'off');  // знакомство
-  const first = currentCard(l), was = first.due;
-  trackShow(l); tick(2000); trackFlip(); tick(2000);
-  await leaveCard(l, 1);
-  assert.deepEqual([l.pos, first.due], [1, was]);
+  assert.equal((await loadToday(t)).n, 1);              // в «сегодня» попала одна оценка — читаем из истории
 });
 
-test('случайная колода: из проекта — непустая и другая; колода — она сама; вся библиотека — нельзя', async () => {
-  const p = await insertProject('Даты', 'ru-RU');
-  const d1 = await insertDeck(p, 'A'), d2 = await insertDeck(p, 'B'), d3 = await insertDeck(p, 'Пустая');
-  await insertCards(d1, [{ front: '1', back: 'a' }]);
-  await insertCards(d2, [{ front: '2', back: 'b' }, { front: '3', back: 'c' }]);
-  assert.deepEqual((await randomCandidates(`p:${p}`)).sort(), [d1, d2].sort());
-  assert.deepEqual(await randomCandidates(`d:${d3}`), []);
-  assert.equal(await pickDeck('all'), null);
-  assert.equal(await pickDeck(`d:${d3}`), null);
-  assert.equal(await pickDeck(`d:${d1}`), `d:${d1}`);
-  for (let i = 0; i < 20; i++) assert.equal(await pickDeck(`p:${p}`, `d:${d1}`), `d:${d2}`);   // есть выбор — не та же
-  const seen = new Set();
-  for (let i = 0; i < 40; i++) seen.add(await pickDeck(`p:${p}`));
-  assert.deepEqual([...seen].sort(), [`d:${d1}`, `d:${d2}`]);                                  // выпадают обе
-
-  const s = await startSession(await pickDeck(`p:${p}`), 'review', 'off', `p:${p}`);
-  const was = s.scope;
-  await restartSession(s);                              // 🎲 — другая колода проекта
-  assert.notEqual(s.scope, was);
-  assert.deepEqual([s.origin, s.mode], [`p:${p}`, 'review']);
-  assert.equal(s.order.length, s.scope === `d:${d1}` ? 1 : 2);
-  const only = await startSession(`d:${d1}`, 'review', 'off', `d:${d1}`);
-  await restartSession(only);
-  assert.equal(only.scope, `d:${d1}`);
+test('«На слух»: оценка — после перевода; без перевода, с подсказкой и с переслушиванием', () => {
+  const g = o => inferGrade(sig({ listen: true, flips: 1, think: 2000, look: 2000, dwell: 4000, ...o }), fresh);
+  assert.equal(g({}), 'easy');
+  assert.equal(g({ hinted: true }), 'good');            // подсмотрел текст
+  assert.equal(g({ hinted: true, plays: 3 }), 'hard');  // подсмотрел и слушал много раз
+  assert.equal(g({ hinted: true, plays: 3, think: 5000 }), 'again');
+  assert.equal(g({ hinted: true, plays: 3, think: 9500, look: 6000 }), 'again');
+  assert.equal(inferGrade(sig({ listen: true, dwell: 5000 }), fresh), null);   // не перевернул — проверить нечем
 });
 
-test('счётчик дня и серия подряд', async () => {
+test('серии дней и сегодня считаются из истории (ничего не хранится отдельно)', async () => {
   const at = (m, d, h = 12) => new Date(2026, m - 1, d, h).getTime();
   assert.equal(dayKey(0, at(3, 5)), '2026-03-05');
   assert.equal(dayKey(-1, at(3, 1)), '2026-02-28');
-  assert.deepEqual(await loadToday(at(3, 5)), { day: '2026-03-05', n: 0, streak: 0, last: '' });
-  await countToday(at(3, 5)); await countToday(at(3, 5, 18));
-  let x = await loadToday(at(3, 5, 20));
-  assert.deepEqual([x.n, x.streak], [2, 1]);
-  await countToday(at(3, 6));
-  x = await loadToday(at(3, 6));
-  assert.deepEqual([x.n, x.streak], [1, 2]);            // новый день, серия растёт
-  x = await loadToday(at(3, 7));
-  assert.deepEqual([x.n, x.streak], [0, 2]);            // вчера учился — серия жива
-  x = await loadToday(at(3, 9));
-  assert.deepEqual([x.n, x.streak], [0, 0]);            // пропуск — серия прервалась
-  await countToday(at(3, 9));
-  assert.equal((await loadToday(at(3, 9))).streak, 1);
+  const card = currentCard(await startSession('all', 'srs'));
+  assert.deepEqual(await loadToday(at(3, 5)), { n: 0, current: 0, best: 0 });
+  for (const ts of [at(3, 1), at(3, 2), at(3, 3), at(3, 5), at(3, 5, 18), at(3, 6)]) await insertReview(card.id, 'good', {}, 0, 'srs', ts);
+  let x = await loadToday(at(3, 6, 20));
+  assert.deepEqual([x.n, x.current, x.best], [1, 2, 3]);   // 5–6 марта подряд, лучшая серия — 1–3 марта
+  x = await loadToday(at(3, 7));                           // вчера учился — серия жива
+  assert.deepEqual([x.n, x.current], [0, 2]);
+  x = await loadToday(at(3, 9));                           // пропуск — серия прервалась
+  assert.deepEqual([x.n, x.current, x.best], [0, 0, 3]);
 });
 
-test('оценка карточки попадает в счётчик дня', async () => {
-  const s = await startSession('all', 'srs', 'off');
+test('оценка карточки попадает в «сегодня»', async () => {
+  const s = await startSession('all', 'srs');
   await gradeCard(s, 'good'); await gradeCard(s, 'again');
   assert.equal((await loadToday(t)).n, 2);
 });

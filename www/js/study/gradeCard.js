@@ -6,23 +6,22 @@ import insertReview from '../repo/insertReview.js';
 import snapshotGrade from './snapshotGrade.js';
 import requeue from './requeue.js';
 import checkLeech from './checkLeech.js';
-import countToday from './countToday.js';
-import saveState from './saveState.js';
 /**
- * Оценка карточки: расписание (SM-2), запись в историю, счётчик дня, итог сессии. sig — сигналы поведения (время до переворота / на ответе).
- * Перед изменениями запоминается снимок — «↶» (study/undoGrade) вернёт всё как было.
+ * Оценка карточки. Всё пишется в базу: запись истории (оценка, время, подсказка, прослушивания) и, в интервальном повторении, новое
+ * расписание карточки (SM-2). «На слух» расписание не двигает — только история. sig — сигналы поведения.
+ * Перед изменениями запоминается снимок — «↶» (study/undoGrade) вернёт всё как было. Счётчик дня и серия считаются из истории.
  */
 export default async function gradeCard(session, grade, sig = {}) {
   const card = currentCard(session);
   if (!card) return;
-  const fresh = isNewCard(card);
-  session.undo = await snapshotGrade(session, card);
-  Object.assign(card, nextSrs(card, grade));
-  await updateCardSrs(card.id, card);
-  session.undo.review = await insertReview(card.id, grade, sig, fresh);
+  const srs = session.mode === 'srs', fresh = srs && isNewCard(card);
+  session.undo = snapshotGrade(session, card);
+  if (srs) {
+    Object.assign(card, nextSrs(card, grade));
+    await updateCardSrs(card.id, card);
+  }
+  session.undo.review = await insertReview(card.id, grade, sig, fresh, session.mode);
   requeue(session, grade);
   session.log.push({ id: card.id, grade });
-  await countToday();
-  if (grade === 'again') await checkLeech(session, card);
-  await saveState(session);
+  if (srs && grade === 'again') await checkLeech(session, card);
 }

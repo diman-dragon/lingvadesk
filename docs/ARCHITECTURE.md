@@ -28,30 +28,18 @@
 - **Карточки по кругу.** Свайп по карточке: влево — следующая, вправо — предыдущая, после последней — первая (`study/cyclePos`).
 
 ## Учёба (`study/`)
-- Вкладка «Учёба» («Давай-ка поучим…»): статистика (к повторению · сегодня · дней подряд), плитка **интервального повторения**, выбор области,
-  плитки **обучения** и **случайной колоды**, порядок карточек (`shuffle`).
-- Режимы: `srs` — интервальное повторение по выбранной области (`study/scopeFor`): просроченные (уже изученные) карточки, затем новые в пределах дневного лимита (`study/loadLimits`, `buildOrder`), всё не больше размера сессии; `learn` — обучение: пачка из 10 новых слов
-  выбранной области, знакомство (обе стороны) → проверка; `review` — **случайная колода**: просто карточки, по порядку или вперемешку, расписание не трогается.
-  Выбран проект — `study/pickDeck` берёт случайную непустую колоду (🎲 в шапке сессии — другая, `study/restartSession`); выбрана колода — идёт именно она;
-  выбрана вся библиотека — плитка недоступна (`constants/RANDOM_HINTS`).
-- Сессия `{scope, origin, mode, shuffle, key, map, order, pos, phase, total}`; область — `'all' | 'p:<id>' | 'd:<id>'` (`repo/scopeClause`); `origin` — область, выбранная
-  на вкладке (у случайной колоды `scope` — конкретная колода). Сессия также хранит `limits`, `calib` (пороги под человека), `log` (итог), `dirs`, `undo`. Позиция хранится в таблице `settings` по ключу `session:<область>:<режим>` (SRS каждый раз собирается заново).
-- **Оценки кнопками нет — расписание считается по поведению** (`srs/inferGrade`, пороги — `constants/BEHAVIOR`). Пока карточка на экране, `study/track*`
-  копят сигналы (`state/trackState`): время до первого переворота (вспоминание), время на ответе, число переворотов, «пересмотр» (вернулся свайпом назад),
-  «отвлёкся» (один отрезок > 45 с). Время стоит, пока приложение свёрнуто (`events/onVisibility`). Уход вперёд (свайп влево / ›, `study/leaveCard`) — вывод оценки
-  `again | hard | good | easy | null`: `null` (мелькнула < 1,2 с или отвлёкся) расписание не меняет; иначе `gradeCard` обновляет SM-2.
-  Назад (свайп вправо / ‹), «Случайная колода» и знакомство в «Обучении» оценок не дают. «Снова» возвращается через 4 карточки (`BEHAVIOR.againGap`).
-- Счётчик дня и серия подряд — в `settings`, ключ `today` (`study/loadToday`, `study/countToday`).
-- Формулы `srs/nextSrs`: again → через 10 минут и мягкий провал (сохраняется 25% интервала, `constants/LAPSE_KEEP`; ease −0,1, при повторном провале подряд −0,2);
-  good/hard/easy → интервалы SM-2 (после «Снова» — возврат к сохранённому интервалу); ease ≥ 1.3.
-- **История и отмена.** Каждая оценка пишется в `reviews` (`repo/insertReview`: оценка, think / look, fresh — карточка была новой) — отсюда статистика (`views/statsView`),
-  дневной лимит новых (`repo/countNewToday`), калибровка порогов (`srs/calibrate`, `study/loadCalibration`) и «пиявки» (`study/checkLeech`: 5 «снова» → отложить на 2 дня).
-  Перед оценкой `study/snapshotGrade` запоминает всё изменяемое, `study/undoGrade` возвращает (кнопка ↶, `actions/undo`).
-- **Проверка выбором и вводом** (`state.quiz`, `study/makeQuiz`, `views/quizControls`, `study/finishQuiz`): ответ даёт `correct` в сигналах, `srs/inferGrade` оценивает по времени ответа;
-  «Случайная колода» и знакомство всегда переворотом. Направление «вперемешку» — `study/cardDir`. Долгое нажатие на карточку — `gestures/holdCard` → форма карточки.
-- **Схема БД v2** (`DbConfig.VER`): `db/Schema` — чистая установка, `db/MigrateV2` — миграция поверх (тест `test/migration.test.js` сверяет, что схемы совпадают).
-  Нативные плагины учёбы: `KeepAwake` (экран не гаснет), `TtsSay` ждёт запуска движка.
-- Переворот — CSS 3D (`components/flipFaces`, `dom/toggleFlip`), без перерисовки; сколько угодно раз. Озвучка — круглая кнопка с SVG-динамиком (`components/speakButton`, `speakIcon`).
+- Принцип: **всё пишется в базу и читается из неё**. В `settings` — только настройки; сессия нигде не сохраняется (очередь строится заново из `cards`),
+  «сегодня», серии и дневной лимит новых считаются из `reviews` (`study/loadToday`, `study/streaks`, `repo/countNewByDeck`).
+- Вкладка «Учёба» («Давай-ка поучим…»): режим (`prefs.mode`: `srs` | `listen`) и список колод с их счётчиками (`repo/listDeckStats`); плитка «Все колоды».
+  Область сессии — `'all' | 'p:<id>' | 'd:<id>'` (`repo/scopeClause`).
+- `srs` — интервальное повторение: просроченные (давние первыми) + новые, **не больше `newPerDay` на каждую колоду** (`study/buildOrder`, `study/loadLimits`), всё не больше `sessionMax`.
+- `listen` — «На слух»: `views/listenFace` (плеер, спрятанный текст, `actions/showText`, `actions/play`), давно не слушанные первыми (`ll` в `repo/listCardsInScope`); пишет только историю.
+- Оценок кнопками нет: `srs/inferGrade` выводит оценку из поведения (`study/track*`: время до переворота и на ответе, перевороты, возвраты, прослушивания, подсказка);
+  калибровка порогов — `srs/calibrate`; вопросы выбором / вводом — `study/makeQuiz`, `study/finishQuiz`. `study/gradeCard` пишет в `reviews` и (в `srs`) двигает SM-2 (`srs/nextSrs`);
+  `study/undoGrade` откатывает последнюю оценку; «пиявки» — `study/checkLeech`.
+- Статистика (`views/statsView` + `statsOverview / statsGrades / statsDecks / statsHard`): всё из `reviews` и `cards`.
+- **Схема БД v3** (`db/Schema`, миграции `db/MigrateV2`, `db/MigrateV3`; тест `test/migration.test.js` сверяет, что миграция даёт ту же схему, что чистая установка).
+  `reviews(card_id, ts, grade, think, look, fresh, mode, hinted, plays)`; `pronunciations(card_id, ts, engine, transcript, score, audio)` — заготовка под проверку произношения (позже).
 
 ## Жесты и `touch-action`
 Все свайпы — Pointer Events (`gestures/`). Чтобы WebView не отнимал жест (`pointercancel`), `touch-action: none` задан на `.view`,

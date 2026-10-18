@@ -36,6 +36,7 @@ const onPointerUp = await imp('gestures/onPointerUp.js');
 const consumeSuppress = await imp('gestures/consumeSuppress.js');
 const { APP_VERSION } = await import('../www/js/constants/APP_VERSION.js');
 const currentCard = await imp('study/currentCard.js');
+const listReviewsSince = await imp('repo/listReviewsSince.js');
 const onVisibility = await imp('events/onVisibility.js');
 const { track } = await import('../www/js/state/trackState.js');
 
@@ -117,32 +118,25 @@ test('библиотека: список ⇄ сетка на всех уровн
   assert.match(page(), /class="item"/);
 });
 
-test('учёба: «Давай-ка поучим…», интервальное повторение по всем колодам, обучение и случайная колода', async () => {
+test('учёба: «Давай-ка поучим…» — режим и колоды; интервальное повторение считается по каждой колоде', async () => {
+  setHeight(2000);
   await press('goStudy');
   assert.equal(count(/class="tab on"/), 1);
   assert.match(page(), /Давай-ка поучим/);
-  assert.match(page(), /Что учим/);
-  assert.match(page(), /<optgroup label="English"><option value="p:1">Весь проект<\/option><option value="d:1">Basics<\/option>/);
-  for (const t of ['Интервальное повторение', 'Обучение', 'Случайная колода', 'Порядок карточек', 'к повторению', 'сегодня', 'дней подряд', 'Все колоды · выучено 0']) assert.match(page(), new RegExp(t));
-  assert.equal(count(/data-act="startStudy"/), 3);
-  assert.match(page(), /class="tile off"/);                      // вся библиотека: случайная колода недоступна
-  await press('startStudy', { mode: 'review' });
+  for (const t of ['к повторению', 'новых', 'сегодня', 'дней подряд', 'Все колоды', 'Basics', 'English · повторить 0 · новых 8 · выучено 0/8', 'Повторение', 'На слух', 'Режим']) assert.match(page(), new RegExp(t));
+  assert.doesNotMatch(page(), /Обучение|Случайная колода|Что учим|Порядок карточек/);
+  assert.equal(count(/data-act="startStudy"/), 2);                // «Все колоды» и колода
+  await press('setPref', { key: 'mode', v: 'listen' });
+  assert.match(page(), /English · карточек 8/);
+  assert.match(page(), /8 карточек/);
+  await press('setPref', { key: 'mode', v: 'srs' });
+  await press('startStudy', { scope: 'p:999' });                  // нет такой области: пустая очередь не открывается
   assert.equal(state.nav.v, 'study');
-  assert.match(toastEl.textContent, /Выберите проект или колоду/);
-  await change('setScope', { value: 'p:1' });
-  assert.doesNotMatch(page(), /class="tile off"/);
-  assert.match(page(), /Случайная колода проекта/);
-  await change('setScope', { value: 'd:1' });
-  assert.match(page(), /<option value="d:1" selected>/);
-  assert.match(page(), /Именно эта колода/);
-  await setSetting('scope', 'p:999');                           // область удалена
-  state.scope = 'p:999';
-  await press('goStudy');
-  assert.equal(state.scope, 'all');
+  assert.match(toastEl.textContent, /нет карточек/);
 });
 
 test('интервальное повторение: оценка по поведению, без кнопок оценки, листание по кругу', async () => {
-  await press('startStudy', { mode: 'srs' });
+  await press('startStudy', { scope: 'all' });
   assert.equal(state.nav.v, 'session');
   assert.equal(state.session.scope, 'all');                      // всегда по всем колодам
   assert.match(page(), /Осталось 8 из 8/);
@@ -188,62 +182,37 @@ test('интервальное повторение: оценка по пове�
   assert.equal(state.session.pos, p0);
 });
 
-test('«Случайная колода»: проект → его колода (🎲 — другая), без расписания, по кругу, переворот туда-обратно', async () => {
+test('«На слух»: плеер вместо текста, «Показать текст» — подсказка, перевод, оценка и запись в историю', async () => {
+  await press('goStudy');
+  await press('setPref', { key: 'mode', v: 'listen' });
+  bridge.io.spoken = null;
+  await press('startStudy', { id: 1 });
+  assert.equal(state.session.mode, 'listen');
+  assert.deepEqual(bridge.io.spoken, { text: 'apple', lang: 'en-US' });   // слово звучит само при показе
+  assert.match(app.innerHTML, /button class="speak xl" data-act="play"/);
+  assert.match(app.innerHTML, /class="big hidtext" hidden>apple/);          // текст спрятан
+  assert.match(app.innerHTML, /Показать текст/);
+  assert.doesNotMatch(app.innerHTML, /data-act="toggleDir"/);
+  bridge.io.spoken = null;
+  await press('play', { t: 'apple', lang: 'en-US' });
+  assert.deepEqual(bridge.io.spoken, { text: 'apple', lang: 'en-US' });
+  assert.equal(track.plays, 1);
+  await press('showText');
+  assert.equal(track.hinted, true);
+  const card = currentCard(state.session), due = card.due;
+  flipEl.cls.delete('flipped');
+  wait(2000); await press('flip'); wait(2000); await press('skip');   // подсмотрел, перевёл → «хорошо»
+  const last = (await listReviewsSince(0)).at(-1);
+  assert.deepEqual([last.mode, last.grade, Number(last.hinted), Number(last.plays), last.fresh], ['listen', 'good', 1, 1, 0]);
+  assert.equal(card.due, due);                                    // расписание не двигается
+  await press('setPref', { key: 'mode', v: 'srs' });
   await press('back');
-  assert.equal(state.nav.v, 'study');
-  await change('setScope', { value: 'p:1' });
-  await press('startStudy', { mode: 'review' });
-  assert.deepEqual([state.session.scope, state.session.origin], ['d:1', 'p:1']);
-  assert.match(page(), /Случайная колода/);
-  assert.match(page(), /1 \/ 8/);
-  assert.match(app.innerHTML, /data-act="restart"/);             // 🎲 в шапке
-  assert.match(page(), /Перевернуть/);
-  assert.equal(count(/data-act="grade"/), 0);
-  const first = currentCard(state.session), due = first.due;
-  wait(2000); await press('flip'); wait(2000); await press('skip');
-  assert.equal(first.due, due);                                  // просто карточки: расписание не меняется
-  assert.deepEqual([state.session.order.length, state.session.pos], [8, 1]);
-  await press('prev'); await press('prev');
-  assert.equal(state.session.pos, 7);                            // по кругу назад
-  await press('skip');
-  assert.equal(state.session.pos, 0);
-  await press('toggleDir');
-  assert.equal(state.prefs.dir, 'rev');
-  assert.match(page(), /<div class="big">яблоко<\/div>/);
-  await press('toggleDir');
-  assert.equal(state.prefs.dir, 'mix');                        // Я→П → П→Я → вперемешку → Я→П
-  await press('toggleDir');
-  assert.equal(state.prefs.dir, 'fwd');
-  await press('back');
-  await change('setScope', { value: 'd:1' });                    // колода — идёт именно она, 🎲 не нужна
-  await press('startStudy', { mode: 'review' });
-  assert.equal(state.session.scope, 'd:1');
-  assert.doesNotMatch(app.innerHTML, /data-act="restart"/);
-});
-
-test('«Обучение»: знакомство (обе стороны, без оценок) → проверка по поведению', async () => {
-  await press('back');
-  await press('startStudy', { mode: 'learn' });
-  assert.match(page(), /Знакомство · 1 \/ 5/);
-  assert.match(page(), /class="flip flipped"/);
-  assert.match(page(), /К проверке/);
-  assert.equal(count(/data-act="grade"/), 0);
-  await press('skip'); await press('prev'); await press('prev');
-  assert.equal(state.session.pos, 4);                           // знакомство тоже по кругу
-  await press('startQuiz');
-  assert.match(page(), /Осталось 5 из 5/);
-  assert.match(page(), /Перевернуть/);
-  assert.doesNotMatch(page(), /Знакомство/);
-  for (let i = 0; i < 5; i++) { wait(2000); await press('flip'); wait(2000); await press('skip'); }
-  assert.match(page(), /Пачка выучена/);
-  await press('restart');
-  assert.match(page(), /Новых слов нет/);
 });
 
 test('автоозвучка и озвучка по голосу проекта', async () => {
   await press('setPref', { key: 'autoplay', v: 'on' });
   await press('back');
-  await press('startStudy', { mode: 'review' });
+  await press('startStudy', { id: 1 });
   assert.deepEqual(bridge.io.spoken, { text: 'apple', lang: 'en-US' });
   await press('speak', { t: 'hello', lang: 'de-DE' });
   assert.deepEqual(bridge.io.spoken, { text: 'hello', lang: 'de-DE' });
@@ -376,12 +345,12 @@ test('настройки: пять страниц, тема/шрифт/аним�
   assert.equal(count(/class="dtab/, page()), 5);
   assert.match(app.innerHTML, /data-act="back"/);
   assert.doesNotMatch(app.innerHTML, /<header>.*data-act="goSettings"/);
-  for (const [key, v] of [['theme', 'dark'], ['font', 'l'], ['anim', 'off'], ['layout', 'grid'], ['shuffle', 'on']]) await press('setPref', { key, v });
+  for (const [key, v] of [['theme', 'dark'], ['font', 'l'], ['anim', 'off'], ['layout', 'grid'], ['check', 'choice']]) await press('setPref', { key, v });
   assert.deepEqual([document.documentElement.dataset.theme, document.documentElement.dataset.font, document.documentElement.dataset.anim], ['dark', 'l', 'off']);
-  Object.assign(state.prefs, { theme: 'auto', font: 'm', anim: 'on', layout: 'list', shuffle: 'off' });
+  Object.assign(state.prefs, { theme: 'auto', font: 'm', anim: 'on', layout: 'list', check: 'flip' });
   await loadPrefs();
-  assert.deepEqual([state.prefs.theme, state.prefs.font, state.prefs.anim, state.prefs.layout, state.prefs.shuffle], ['dark', 'l', 'off', 'grid', 'on']);
-  for (const [key, v] of [['anim', 'on'], ['layout', 'list'], ['shuffle', 'off']]) await press('setPref', { key, v });
+  assert.deepEqual([state.prefs.theme, state.prefs.font, state.prefs.anim, state.prefs.layout, state.prefs.check], ['dark', 'l', 'off', 'grid', 'choice']);
+  for (const [key, v] of [['anim', 'on'], ['layout', 'list'], ['check', 'flip']]) await press('setPref', { key, v });
 });
 
 test('backup, восстановление, сброс прогресса, отмена SAF', async () => {
@@ -513,8 +482,7 @@ const drag = async (t, x0, x1, y = 0, id = 1) => {
 
 test('жесты карточки: по кругу в обе стороны, пружина, вертикаль — прокрутка', async () => {
   await press('goStudy');
-  await change('setScope', { value: 'd:1' });
-  await press('startStudy', { mode: 'review' });
+  await press('startStudy', { id: 1 });
   assert.equal(state.session.pos, 0);
   await drag(target, 60, 250);                                   // вправо на первой — последняя (по кругу)
   assert.equal(state.session.pos, 7);
@@ -538,8 +506,7 @@ test('жесты карточки: по кругу в обе стороны, п�
 
 test('жесты: быстрый короткий флик листает карточку, диагональный жест не отменяется', async () => {
   await press('goStudy');
-  await change('setScope', { value: 'd:1' });
-  await press('startStudy', { mode: 'review' });
+  await press('startStudy', { id: 1 });
   await drag(target, 250, 205);                                  // 45 px, мгновенно — флик
   assert.equal(state.session.pos, 1);
   consumeSuppress();
@@ -562,16 +529,18 @@ test('жесты: клик после свайпа гасится, тап по �
 });
 
 test('свайп, начатый на кнопке свободной области, листает экран и не нажимает кнопку', async () => {
+  setHeight(2000);
   await press('goStudy');
   const onButton = { closest: sel => (sel === '.view' ? {} : null) };      // кнопка-плитка не блокирует жест
   await drag(onButton, 300, 40);
   assert.equal(state.nav.v, 'settings');
-  await press('startStudy', { mode: 'srs' });                                // «клик» после жеста погашен
+  await press('startStudy', { scope: 'all' });                                // «клик» после жеста погашен
   assert.equal(state.nav.v, 'settings');
   await press('goStudy');
 });
 
 test('жесты по свободной области: листают страницы и экраны; в сессии и формах отключены', async () => {
+  setHeight(2000);
   await press('goStudy');
   await drag(areaTarget, 250, 60);                               // «Учёба» — одна страница: влево → настройки
   assert.equal(state.nav.v, 'settings');
@@ -603,9 +572,8 @@ test('проверка выбором и вводом: ответ перевор
   await press('importLibrary');                                  // прежние тесты удалили библиотеку
   const deckId = (await listAllDecks())[0].id;
   await press('goStudy');
-  await change('setScope', { value: `d:${deckId}` });
   await press('setPref', { key: 'check', v: 'choice' });
-  await press('startStudy', { mode: 'srs' });
+  await press('startStudy', { scope: 'all' });
   assert.equal(state.quiz.kind, 'choice');
   assert.equal(count(/data-act="pick"/), 4);
   assert.doesNotMatch(app.innerHTML, /class="flip" data-act="flip"/);   // тап по карточке не раскрывает ответ
@@ -629,7 +597,7 @@ test('проверка выбором и вводом: ответ перевор
   assert.doesNotMatch(page(), /data-act="undo"/);
   await press('setPref', { key: 'check', v: 'type' });
   await press('back');
-  await press('startStudy', { mode: 'srs' });
+  await press('startStudy', { scope: 'all' });
   const t1 = currentCard(state.session);
   assert.equal(state.quiz.kind, 'type');
   setFields({ ans: '' });
@@ -651,8 +619,7 @@ test('проверка выбором и вводом: ответ перевор
 test('долгое нажатие на карточку открывает её правку; после сохранения сессия показывает новый текст', async () => {
   const deckId = (await listAllDecks())[0].id;
   await press('goStudy');
-  await change('setScope', { value: `d:${deckId}` });
-  await press('startStudy', { mode: 'review' });
+  await press('startStudy', { id: deckId });
   const card = currentCard(state.session);
   const target = { closest: sel => (/input|button/.test(sel) ? null : flipEl), style: {}, setPointerCapture() {} };
   onPointerDown({ target, pointerId: 9, clientX: 100, clientY: 100, button: 0 });
@@ -667,4 +634,18 @@ test('долгое нажатие на карточку открывает её 
   assert.equal(state.nav.v, 'session');
   assert.equal(currentCard(state.session).front, 'apple!');
   await press('back');
+});
+
+test('статистика: четыре страницы, всё из истории в базе', async () => {
+  setHeight(500);
+  await press('goStudy');
+  await press('goStats');
+  assert.equal(state.nav.v, 'stats');
+  assert.equal(state.pager.fixed, true);
+  assert.equal(count(/class="dtab/, page()), 4);
+  const all = state.pager.items.join('');
+  for (const t of ['Обзор', 'сегодня', '7 дней', '30 дней', 'всего', 'удержание', 'лучшая серия', 'выучено', 'Повторений по дням', 'Оценки за 30 дней', 'Снова', 'на слух', 'с подсказкой', 'вспоминание', 'Колоды', 'Basics', 'Чаще всего', 'Придёт на повторение']) assert.match(all, new RegExp(t));
+  assert.match(app.innerHTML, /data-act="back"/);
+  await press('back');
+  assert.equal(state.nav.v, 'study');
 });

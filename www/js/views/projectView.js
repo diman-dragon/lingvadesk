@@ -14,6 +14,6 @@ export default async function projectView() {
   const [project, decks] = await Promise.all([getProject(state.nav.id), listDecksOfProject(state.nav.id)]);
   const items = decks.map(d => entry({ act: 'goDeck', id: d.id, title: d.name, sub: `карточек: ${d.n} · к повторению: ${d.due}`, badge: d.due, avatarText: d.name }));
   const body = items.length ? pagedList(items) : emptyState({ icon: '🗂️', title: 'Колод нет', text: 'Колода собирает карточки по теме внутри проекта.' });
-  const actions = button({ act: 'newDeck', cls: 'p', label: '+ Колода' }) + button({ act: 'studyHere', label: '🎓 Учить', data: { scope: `p:${project.id}` } });
+  const actions = button({ act: 'newDeck', cls: 'p', label: '+ Колода' }) + button({ act: 'startStudy', label: '🎓 Учить', data: { scope: `p:${project.id}` } });
   return header(project.name, { left: backButton('goLibrary'), right: layoutToggle() + editButton('editProject') }) + body + row(actions, 'foot');
 }

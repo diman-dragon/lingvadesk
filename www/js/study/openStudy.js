@@ -1,18 +1,16 @@
 import { state } from '../state/appState.js';
-import { NO_LIMITS } from '../constants/NO_LIMITS.js';
 import startSession from './startSession.js';
-import scopeFor from './scopeFor.js';
 import loadLimits from './loadLimits.js';
 import trackShow from './trackShow.js';
 import autoSpeak from './autoSpeak.js';
 import go from '../nav/go.js';
-/** Запуск учёбы. origin — область, выбранная на вкладке «Учёба» (из неё потом берётся другая случайная колода). */
-export default async function openStudy(mode) {
-  const scope = await scopeFor(mode, state.scope);
-  if (!scope) throw new Error('Выберите проект или колоду, в которой есть карточки');
-  state.session = await startSession(scope, mode, state.prefs.shuffle, state.scope, mode === 'srs' ? await loadLimits() : NO_LIMITS);
+/** Запуск учёбы в режиме mode ('srs' | 'listen') по области scope ('all' | 'p:<id>' | 'd:<id>'). */
+export default async function openStudy(mode, scope) {
+  const session = await startSession(scope, mode, await loadLimits());
+  if (!session.map.size) throw new Error('В колоде нет карточек');
+  state.session = session;
   state.quiz = null;
   await go('session');
-  trackShow(state.session);
+  trackShow(session);
   await autoSpeak('show');
 }

@@ -1,31 +1,17 @@
 import listCardsInScope from '../repo/listCardsInScope.js';
-import sessionKey from './sessionKey.js';
-import loadSavedState from './loadSavedState.js';
-import restoreOrder from './restoreOrder.js';
 import buildOrder from './buildOrder.js';
-import saveState from './saveState.js';
 import loadCalibration from './loadCalibration.js';
 import { NO_LIMITS } from '../constants/NO_LIMITS.js';
 /**
- * session = { scope, origin, mode, shuffle, key, map(id→карточка), order[], pos, phase, total, limits, calib, log[], dirs{}, undo }.
- * limits — дневной лимит новых и размер сессии (только srs); calib — пороги оценки под человека; log — итог сессии; undo — что отменяет «↶».
- * origin — область, выбранная на вкладке «Учёба» (у случайной колоды scope — конкретная колода).
- * srs собирается заново; learn и review продолжаются с сохранённого места.
+ * session = { scope, mode, map(id→карточка), order[], pos, total, limits, calib, log[], dirs{}, undo }.
+ * scope — 'all' | 'p:<проект>' | 'd:<колода>'; mode — 'srs' | 'listen'. Всё читается из базы при каждом запуске:
+ * карточки и их расписание, лимиты, оценки поведения под человека. Позиция сессии нигде не хранится — очередь строится заново.
  */
-export default async function startSession(scope, mode, shuffle, origin = scope, limits = NO_LIMITS) {
+export default async function startSession(scope, mode, limits = NO_LIMITS) {
   const cards = await listCardsInScope(scope);
-  const map = new Map(cards.map(c => [c.id, c]));
-  const key = sessionKey(scope, mode, shuffle);
-  const saved = mode === 'srs' ? null : await loadSavedState(key);
-  const kept = saved ? restoreOrder(saved.order, map, mode) : [];
-  const resume = kept.length > 0;
-  const order = resume ? kept : buildOrder(mode, cards, shuffle, limits);
-  const session = {
-    scope, origin, mode, shuffle, key, map, order, limits, calib: await loadCalibration(), log: [], dirs: {}, undo: null,
-    phase: resume ? saved.phase : (mode === 'learn' && order.length ? 'intro' : 'quiz'),
-    total: resume ? Math.max(saved.total, order.length) : order.length,
-    pos: resume ? Math.min(saved.pos, order.length - 1) : 0
+  const order = buildOrder(mode, cards, limits);
+  return {
+    scope, mode, map: new Map(cards.map(c => [c.id, c])), order, pos: 0, total: order.length,
+    limits, calib: await loadCalibration(), log: [], dirs: {}, undo: null
   };
-  await saveState(session);
-  return session;
 }

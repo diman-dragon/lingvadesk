@@ -17,7 +17,7 @@ export default async function deckView() {
   const due = cards.filter(c => c.due > 0 && c.due <= Date.now()).length;
   const items = cards.map(c => entry({ act: 'editCard', id: c.id, title: (c.agains >= BEHAVIOR.leech ? '🐛 ' : '') + c.front, sub: c.back }));
   const body = items.length ? pagedList(items) : emptyState({ icon: '🃏', title: 'Карточек нет', text: 'Добавьте первую карточку.' });
-  const actions = button({ act: 'newCard', cls: 'p', label: '+ Карточка' }) + button({ act: 'studyHere', label: '🎓 Учить', data: { scope: `d:${deck.id}` } });
+  const actions = button({ act: 'newCard', cls: 'p', label: '+ Карточка' }) + button({ act: 'startStudy', label: '🎓 Учить', data: { scope: `d:${deck.id}` } });
   return header(deck.name, { left: backButton('goProject', deck.language_id), right: layoutToggle() + editButton('editDeck') }) +
     `<div class="sub">${deck.pname} · ${cards.length} карточек · ${due} к повторению</div>` + body + row(actions, 'foot');
 }

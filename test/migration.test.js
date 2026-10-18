@@ -17,29 +17,49 @@ const V1 = [
 const shape = db => Object.fromEntries(db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all()
   .map(t => [t.name, db.prepare(`PRAGMA table_info(${t.name})`).all().map(c => `${c.name}:${c.type}:${c.notnull}:${c.dflt_value}:${c.pk}`)]));
 
-test('миграция 1 → 2 даёт ту же схему, что и чистая установка; данные сохраняются, deck_state удаляется', () => {
+const migrate = (db, ...files) => files.forEach(f => strings(f).forEach(sql => db.exec(sql)));
+const freshDb = () => {
+  const db = new DatabaseSync(':memory:');
+  strings('Schema.java').filter(s => s.startsWith('CREATE')).forEach(s => db.exec(s));
+  return db;
+};
+const seed = db => db.exec("INSERT INTO languages(name) VALUES('EN'); INSERT INTO decks(language_id,name,created) VALUES(1,'D',1); INSERT INTO cards(deck_id,front,back,due,interval,reps) VALUES(1,'a','б',5,3,2); INSERT INTO settings VALUES('today','{}'),('session:all:srs:-','{}'),('scope','all'),('theme','dark')");
+
+test('миграция 1 → 3 даёт ту же схему, что и чистая установка; данные сохраняются, deck_state удаляется', () => {
   const old = new DatabaseSync(':memory:');
   V1.forEach(s => old.exec(s));
-  old.exec("INSERT INTO languages(name) VALUES('EN'); INSERT INTO decks(language_id,name,created) VALUES(1,'D',1); INSERT INTO cards(deck_id,front,back,due,interval,reps) VALUES(1,'a','б',5,3,2); INSERT INTO settings VALUES('today','{}')");
-  strings('MigrateV2.java').forEach(s => old.exec(s));
-  const fresh = new DatabaseSync(':memory:');
-  strings('Schema.java').filter(s => s.startsWith('CREATE')).forEach(s => fresh.exec(s));
-  assert.deepEqual(shape(old), shape(fresh));
+  seed(old);
+  migrate(old, 'MigrateV2.java', 'MigrateV3.java');
+  assert.deepEqual(shape(old), shape(freshDb()));
   assert.equal(old.prepare('SELECT interval,reps FROM cards').get().interval, 3);
-  assert.equal(old.prepare('SELECT COUNT(*) n FROM settings').get().n, 1);
+  assert.deepEqual(old.prepare('SELECT key FROM settings').all().map(r => r.key), ['theme']);   // лишнее из settings ушло, настройки остались
   assert.equal(old.prepare("SELECT COUNT(*) n FROM sqlite_master WHERE name='deck_state'").get().n, 0);
   old.exec('PRAGMA foreign_keys=ON');
-  old.exec("INSERT INTO reviews(card_id,ts,grade) VALUES(1,1,'good')");
-  old.exec('DELETE FROM cards');                                  // отзывы удаляются каскадом
-  assert.equal(old.prepare('SELECT COUNT(*) n FROM reviews').get().n, 0);
+  old.exec("INSERT INTO reviews(card_id,ts,grade) VALUES(1,1,'good'); INSERT INTO pronunciations(card_id,ts,score) VALUES(1,1,0.9)");
+  assert.deepEqual({ ...old.prepare('SELECT mode,hinted,plays FROM reviews').get() }, { mode: 'srs', hinted: 0, plays: 0 });
+  old.exec('DELETE FROM cards');                                  // история и проверки произношения удаляются каскадом
+  assert.equal(old.prepare('SELECT (SELECT COUNT(*) FROM reviews)+(SELECT COUNT(*) FROM pronunciations) n').get().n, 0);
 });
 
-test('версия схемы повышена, миграция подключена, проверка резервной копии принимает копии обеих версий', () => {
-  assert.match(readFileSync(`${J}/DbConfig.java`, 'utf8'), /VER = 2/);
+test('миграция 2 → 3 (установка 1.3.x): история повторений сохраняется и получает режим по умолчанию', () => {
+  const v2 = new DatabaseSync(':memory:');
+  V1.filter(s => !s.includes('deck_state')).forEach(s => v2.exec(s));
+  migrate(v2, 'MigrateV2.java');
+  seed(v2);
+  v2.exec("INSERT INTO reviews(card_id,ts,grade,think,look,fresh) VALUES(1,5,'easy',2000,1500,1)");
+  migrate(v2, 'MigrateV3.java');
+  assert.deepEqual(shape(v2), shape(freshDb()));
+  assert.deepEqual({ ...v2.prepare('SELECT grade,think,fresh,mode FROM reviews').get() }, { grade: 'easy', think: 2000, fresh: 1, mode: 'srs' });
+});
+
+test('версия схемы повышена, миграции подключены, проверка резервной копии принимает копии всех версий', () => {
+  assert.match(readFileSync(`${J}/DbConfig.java`, 'utf8'), /VER = 3/);
   assert.match(readFileSync(`${J}/DbHelper.java`, 'utf8'), /Migrate\.run\(db, from\)/);
-  assert.match(readFileSync(`${J}/Migrate.java`, 'utf8'), /from < 2/);
+  const m = readFileSync(`${J}/Migrate.java`, 'utf8');
+  assert.match(m, /from < 2/);
+  assert.match(m, /from < 3/);
   const v = readFileSync('android/app/src/main/java/com/example/lingocards/backup/IsValidDb.java', 'utf8');
-  assert.match(v, /IN \('languages','decks','cards','settings'\)/);   // копия v1 (есть deck_state) тоже подходит
+  assert.match(v, /IN \('languages','decks','cards','settings'\)/);   // копии v1 (есть deck_state) и v2 тоже подходят
   assert.match(v, /getInt\(0\) == 4/);
 });
 
