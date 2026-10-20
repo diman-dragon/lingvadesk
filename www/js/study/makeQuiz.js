@@ -4,7 +4,7 @@ import shuffle from '../util/shuffle.js';
  * Варианты — ответы других карточек области. dir — какая сторона отвечает: 'fwd' — перевод, 'rev' — слово.
  */
 export default function makeQuiz(session, card, dir, check) {
-  if (check === 'flip') return null;
+  if (check === 'flip' || session.mode === 'cards') return null;
   const text = c => (dir === 'fwd' ? c.back : c.front);
   const answer = text(card), base = { id: card.id, answer, result: null, hint: 0, typed: '' };
   if (check === 'type') return { ...base, kind: 'type' };

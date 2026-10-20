@@ -6,6 +6,7 @@ import insertReview from '../repo/insertReview.js';
 import snapshotGrade from './snapshotGrade.js';
 import requeue from './requeue.js';
 import checkLeech from './checkLeech.js';
+import markStudied from './markStudied.js';
 /**
  * Оценка карточки. Всё пишется в базу: запись истории (оценка, время, подсказка, прослушивания) и, в интервальном повторении, новое
  * расписание карточки (SM-2). «На слух» расписание не двигает — только история. sig — сигналы поведения.
@@ -21,7 +22,9 @@ export default async function gradeCard(session, grade, sig = {}) {
     await updateCardSrs(card.id, card);
   }
   session.undo.review = await insertReview(card.id, grade, sig, fresh, session.mode);
+  markStudied();
   requeue(session, grade);
+  if (grade !== 'again') session.plan.delete(card.id);   // карточка плана пройдена; «снова» остаётся в плане
   session.log.push({ id: card.id, grade });
   if (srs && grade === 'again') await checkLeech(session, card);
 }

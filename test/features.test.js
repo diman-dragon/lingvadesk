@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import installBridge from './helpers/installBridge.js';
 import deckFile from './helpers/deckFile.js';
-import importLibraryFromFile from '../www/js/deckio/importLibraryFromFile.js';
+import importLibraryFromFile from './helpers/importLibraryFromFile.js';
 import { state } from '../www/js/state/appState.js';
 import { BEHAVIOR } from '../www/js/constants/BEHAVIOR.js';
 import startSession from '../www/js/study/startSession.js';
@@ -71,10 +71,9 @@ test('интервальное повторение: просроченные п
   await updateCardSrs(dueId, { due: 1000, interval: 1, ease: 2.5, reps: 1 });
   const lim = (perDay, max) => startSession('all', 'srs', { perDay, used: {}, max });
   const a = await lim(2, 99);
-  assert.equal(a.order.length, 3);
-  assert.equal(a.order[0], dueId);
-  assert.equal((await lim(0, 99)).order.length, 1);               // лимит новых исчерпан — только просроченные
-  assert.equal((await lim(5, 2)).order.length, 2);                // размер сессии
+  assert.deepEqual([a.plan.size, a.order.length, a.order[0]], [3, 8, dueId]);   // план: просроченная + 2 новые; остальные — после плана
+  assert.equal((await lim(0, 99)).plan.size, 1);                  // лимит новых исчерпан — в плане только просроченные
+  assert.equal((await lim(5, 2)).plan.size, 2);                   // размер сессии
 });
 
 test('история: оценка пишет время; новые карточки считаются за день по колодам', async () => {

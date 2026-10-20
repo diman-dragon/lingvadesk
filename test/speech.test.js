@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import installBridge from './helpers/installBridge.js';
 import deckFile from './helpers/deckFile.js';
-import importLibraryFromFile from '../www/js/deckio/importLibraryFromFile.js';
+import importLibraryFromFile from './helpers/importLibraryFromFile.js';
 import startSession from '../www/js/study/startSession.js';
 import scoreSpeech from '../www/js/study/scoreSpeech.js';
 import levenshtein from '../www/js/util/levenshtein.js';

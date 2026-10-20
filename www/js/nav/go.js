@@ -10,6 +10,7 @@ export default function go(view, params = {}, anim = 'view-in') {
   }
   state.nav = next;
   state.revealed = false;
+  state.sheet = null;
   state.anim = anim;
   state.page = 0;
   return render();

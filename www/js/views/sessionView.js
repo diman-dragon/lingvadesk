@@ -17,6 +17,7 @@ import quizControls from './quizControls.js';
 import studyFinishedView from './studyFinishedView.js';
 const FACES = {
   srs: (c, f, dir, q) => studyFace(c, f, dir, q),
+  cards: (c, f, dir) => studyFace(c, f, dir),
   listen: (c, f, dir, q) => listenFace(c, f, q),
   speak: (c, f, dir, q, speech) => speakFace(c, f, speech)
 };
@@ -24,7 +25,7 @@ const FACES = {
 export default async function sessionView() {
   const s = state.session, card = currentCard(s);
   const undo = s.undo ? button({ act: 'undo', cls: 'sm', label: '↶', aria: 'Отменить последнюю оценку' }) : '';
-  const dirBtn = s.mode !== 'srs' ? '' : button({ act: 'toggleDir', cls: 'sm', label: DIR_LABELS[state.prefs.dir][1] });
+  const dirBtn = s.mode !== 'srs' && s.mode !== 'cards' ? '' : button({ act: 'toggleDir', cls: 'sm', label: DIR_LABELS[state.prefs.dir][1] });
   const head = header(MODE_SHORT[s.mode], { left: backButton('back'), gear: false, right: undo + dirBtn });
   if (!card) return head + studyFinishedView(s);
   const dir = cardDir(s, card);

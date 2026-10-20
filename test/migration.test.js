@@ -25,11 +25,11 @@ const freshDb = () => {
 };
 const seed = db => db.exec("INSERT INTO languages(name) VALUES('EN'); INSERT INTO decks(language_id,name,created) VALUES(1,'D',1); INSERT INTO cards(deck_id,front,back,due,interval,reps) VALUES(1,'a','б',5,3,2); INSERT INTO settings VALUES('today','{}'),('session:all:srs:-','{}'),('scope','all'),('theme','dark')");
 
-test('миграция 1 → 3 даёт ту же схему, что и чистая установка; данные сохраняются, deck_state удаляется', () => {
+test('миграция 1 → 4 даёт ту же схему, что и чистая установка; данные сохраняются, deck_state удаляется', () => {
   const old = new DatabaseSync(':memory:');
   V1.forEach(s => old.exec(s));
   seed(old);
-  migrate(old, 'MigrateV2.java', 'MigrateV3.java');
+  migrate(old, 'MigrateV2.java', 'MigrateV3.java', 'MigrateV4.java');
   assert.deepEqual(shape(old), shape(freshDb()));
   assert.equal(old.prepare('SELECT interval,reps FROM cards').get().interval, 3);
   assert.deepEqual(old.prepare('SELECT key FROM settings').all().map(r => r.key), ['theme']);   // лишнее из settings ушло, настройки остались
@@ -47,17 +47,18 @@ test('миграция 2 → 3 (установка 1.3.x): история пов
   migrate(v2, 'MigrateV2.java');
   seed(v2);
   v2.exec("INSERT INTO reviews(card_id,ts,grade,think,look,fresh) VALUES(1,5,'easy',2000,1500,1)");
-  migrate(v2, 'MigrateV3.java');
+  migrate(v2, 'MigrateV3.java', 'MigrateV4.java');
   assert.deepEqual(shape(v2), shape(freshDb()));
   assert.deepEqual({ ...v2.prepare('SELECT grade,think,fresh,mode FROM reviews').get() }, { grade: 'easy', think: 2000, fresh: 1, mode: 'srs' });
 });
 
 test('версия схемы повышена, миграции подключены, проверка резервной копии принимает копии всех версий', () => {
-  assert.match(readFileSync(`${J}/DbConfig.java`, 'utf8'), /VER = 3/);
+  assert.match(readFileSync(`${J}/DbConfig.java`, 'utf8'), /VER = 4/);
   assert.match(readFileSync(`${J}/DbHelper.java`, 'utf8'), /Migrate\.run\(db, from\)/);
   const m = readFileSync(`${J}/Migrate.java`, 'utf8');
   assert.match(m, /from < 2/);
   assert.match(m, /from < 3/);
+  assert.match(m, /from < 4/);
   const v = readFileSync('android/app/src/main/java/com/example/lingocards/backup/IsValidDb.java', 'utf8');
   assert.match(v, /IN \('languages','decks','cards','settings'\)/);   // копии v1 (есть deck_state) и v2 тоже подходят
   assert.match(v, /getInt\(0\) == 4/);

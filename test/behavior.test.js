@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import installBridge from './helpers/installBridge.js';
 import deckFile from './helpers/deckFile.js';
-import importLibraryFromFile from '../www/js/deckio/importLibraryFromFile.js';
+import importLibraryFromFile from './helpers/importLibraryFromFile.js';
 import saveLibrary from '../www/js/deckio/saveLibrary.js';
 import parseImport from '../www/js/deckio/parseImport.js';
 import insertReview from '../www/js/repo/insertReview.js';

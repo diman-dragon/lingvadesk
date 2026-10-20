@@ -4,14 +4,14 @@ import installBridge from './helpers/installBridge.js';
 import deckFile from './helpers/deckFile.js';
 import parseImport from '../www/js/deckio/parseImport.js';
 import parseLibrary from '../www/js/deckio/parseLibrary.js';
-import importLibraryFromFile from '../www/js/deckio/importLibraryFromFile.js';
+import importLibraryFromFile from './helpers/importLibraryFromFile.js';
 import exportLibraryToFile from '../www/js/deckio/exportLibraryToFile.js';
 import buildLibraryJson from '../www/js/deckio/buildLibraryJson.js';
 import insertProject from '../www/js/repo/insertProject.js';
 import insertDeck from '../www/js/repo/insertDeck.js';
 import insertCards from '../www/js/repo/insertCards.js';
 import listAllDecks from '../www/js/repo/listAllDecks.js';
-import fromB64 from '../www/js/util/fromB64.js';
+const fromB64 = b64 => Buffer.from(b64, 'base64').toString('utf8');
 
 const bridge = installBridge();
 test.beforeEach(() => bridge.reset());

@@ -2,9 +2,10 @@ import { state } from '../state/appState.js';
 import ttsStop from '../native/ttsStop.js';
 import popBack from './popBack.js';
 import render from './render.js';
-/** Системная «Назад»: ровно один шаг назад; на первом экране (библиотека) остаёмся — приложение не закрывается. */
+/** Системная «Назад»: сначала закрывает меню выбора колоды; иначе ровно один шаг назад; на первом экране (библиотека) остаёмся. */
 export default async function systemBack() {
   await ttsStop().catch(() => {});
+  if (state.sheet) { state.sheet = null; return render(); }
   if (await popBack() || state.nav.v === 'library') return;
   state.nav = { v: 'library' };
   state.anim = 'view-in';

@@ -6,6 +6,8 @@ import com.example.lingocards.db.DbBatchPlugin;
 import com.example.lingocards.db.DbQueryPlugin;
 import com.example.lingocards.db.DbRunPlugin;
 import com.example.lingocards.saf.SafOpenPlugin;
+import com.example.lingocards.anki.AnkiNotesPlugin;
+import com.example.lingocards.icon.IconLevelPlugin;
 import com.example.lingocards.screen.KeepAwakePlugin;
 import com.example.lingocards.speech.SpeechListenPlugin;
 import com.example.lingocards.saf.SafSavePlugin;
@@ -21,5 +23,5 @@ public final class PluginList {
         DbQueryPlugin.class, DbRunPlugin.class, DbBatchPlugin.class,
         SafOpenPlugin.class, SafSavePlugin.class,
         BackupCreatePlugin.class, BackupRestorePlugin.class,
-        TtsSpeakPlugin.class, TtsStopPlugin.class, KeepAwakePlugin.class, SpeechListenPlugin.class);
+        TtsSpeakPlugin.class, TtsStopPlugin.class, KeepAwakePlugin.class, SpeechListenPlugin.class, AnkiNotesPlugin.class, IconLevelPlugin.class);
 }

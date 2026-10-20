@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import installBridge from './helpers/installBridge.js';
 import deckFile from './helpers/deckFile.js';
-import importLibraryFromFile from '../www/js/deckio/importLibraryFromFile.js';
+import importLibraryFromFile from './helpers/importLibraryFromFile.js';
 import insertCards from '../www/js/repo/insertCards.js';
 import insertDeck from '../www/js/repo/insertDeck.js';
 import insertProject from '../www/js/repo/insertProject.js';
@@ -69,7 +69,7 @@ test('интервальное повторение: оценка убирает
   assert.equal(currentCard(s).id, c.id);               // «Снова» вернулась
   await gradeCard(s, 'good');
   assert.equal(s.order.length, 2);
-  assert.equal(progressOf(s).text, 'Осталось 2 из 8');
+  assert.equal(progressOf(s).text, 'Осталось 2 из 8 · по плану 2');
 });
 
 test('новые карточки: дневной лимит считается на каждую колоду отдельно, уже начатые сегодня учитываются', async () => {
@@ -77,9 +77,10 @@ test('новые карточки: дневной лимит считается 
   const d2 = await insertDeck(p2, 'XX век');
   await insertCards(d2, [1, 2, 3, 4].map(n => ({ front: String(n), back: `б${n}` })));
   const per = (perDay, used) => startSession('all', 'srs', { perDay, used, max: 99 });
-  const count = (s, id) => s.order.filter(x => s.map.get(x).deck_id === id).length;
+  const count = (s, id) => [...s.plan].filter(x => s.map.get(x).deck_id === id).length;   // в плане дня
   const a = await per(2, {});
   assert.deepEqual([count(a, deckId), count(a, d2)], [2, 2]);
+  assert.equal(a.order.length, 12);                    // лимит не обрезает очередь: остальные идут после плана
   const b = await per(2, { [deckId]: 1 });
   assert.deepEqual([count(b, deckId), count(b, d2)], [1, 2]);
   const c = await per(5, { [d2]: 5 });
@@ -105,4 +106,31 @@ test('restart: очередь и лимиты заново из базы', async
   await gradeCard(s, 'good'); await gradeCard(s, 'good');
   await restartSession(s);
   assert.deepEqual([s.order.length, s.total, s.pos, s.log.length], [6, 6, 0, 0]);
+});
+
+test('план дня выполнен — учёба продолжается без лимита, «Снова» остаётся в плане', async () => {
+  const s = await startSession('all', 'srs', { perDay: 2, used: {}, max: 99 });
+  assert.deepEqual([s.planTotal, s.plan.size, s.order.length], [2, 2, 8]);
+  assert.equal(progressOf(s).text, 'Осталось 8 из 8 · по плану 2');
+  const first = currentCard(s);
+  await gradeCard(s, 'again');
+  assert.deepEqual([s.plan.size, s.plan.has(first.id)], [2, true]);   // «снова» не закрывает план
+  await gradeCard(s, 'good');
+  await gradeCard(s, 'good');
+  assert.equal(s.plan.size, 1);
+  while (s.plan.size) await gradeCard(s, 'good');
+  assert.match(progressOf(s).text, /✓ план выполнен/);
+  assert.ok(s.order.length > 0);                                   // дальше — карточки сверх плана
+  const extra = currentCard(s);
+  assert.equal(s.plan.has(extra.id), false);
+  await gradeCard(s, 'good');                                      // сверх плана оценивается так же
+  assert.equal((await listReviewsSince(0)).length, s.log.length);   // всё записано в базу, в том числе сверх плана
+});
+
+test('«Карточки»: просто перевороты по кругу, без плана и без оценок', async () => {
+  const s = await startSession('all', 'cards');
+  assert.deepEqual([s.order.length, s.planTotal], [8, 0]);
+  assert.equal(progressOf(s).text, 'Карточка 1 из 8');
+  cyclePos(s, -1);
+  assert.equal(progressOf(s).text, 'Карточка 8 из 8');
 });

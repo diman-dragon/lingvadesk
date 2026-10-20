@@ -46,6 +46,14 @@
 - **Схема БД v3** (`db/Schema`, миграции `db/MigrateV2`, `db/MigrateV3`; тест `test/migration.test.js` сверяет, что миграция даёт ту же схему, что чистая установка).
   `reviews(card_id, ts, grade, think, look, fresh, mode, hinted, plays)`; `pronunciations(card_id, ts, engine, transcript, score, audio)` — заготовка под проверку произношения (позже).
 
+## Значок приложения, игра, импорт
+- **Значок** (`android/.../icon/*`, `AndroidManifest.xml`): четыре `activity-alias` (`.IconL0…3`, включён один), значки — адаптивные XML + PNG для API < 26 (`res/mipmap-*/ic_launcher_l1…3`).
+  `IconLevel` — формула уровня (12 / 17 / 20 ч, «занимались сегодня», «есть что учить»), `IconQuery` читает базу, `IconApply` переключает алиас (`DONT_KILL_APP`),
+  `IconSchedule` + `IconReceiver` — будильник раз в 30 минут и перезагрузка. JS: `study/syncIcon` (запуск, возвращение в приложение), `study/markStudied` (позанимались → уровень 0).
+- **Игра** (`game/*`, `views/gameView`, таблица `games`, `reviews.mode = 'game'`): `newGame → nextQuestion → answerQuestion → answerGame → finishGame`; таймер — `game/tickGame` (DOM без перерисовки).
+- **Импорт** (`deckio/*`): `readImportFile` (определяет по сигнатуре zip / по тексту) → `readImportText` (наш JSON → `parseImport`; чужой JSON → `parseJsonCards`; таблица → `parseTextRows` → `rowsToCards`) или `readZip`
+  (`unzip` + `parseXlsx`; `.apkg` — коллекция уходит в плагин `anki/AnkiNotesPlugin`, потому что в JS нет SQLite). Экран «Импорт» — `views/importFormView`, `actions/confirmImport`.
+
 ## Жесты и `touch-action`
 Все свайпы — Pointer Events (`gestures/`). Чтобы WebView не отнимал жест (`pointercancel`), `touch-action: none` задан на `.view`,
 на всех её потомках и на каждом прокручиваемом контейнере внутри (`.face`, `.pager`): Chromium считает эффективное

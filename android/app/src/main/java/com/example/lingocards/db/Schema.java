@@ -11,6 +11,8 @@ final class Schema {
         "CREATE INDEX idx_reviews_ts ON reviews(ts)",
         "CREATE INDEX idx_reviews_card ON reviews(card_id)",
         "CREATE TABLE pronunciations(id INTEGER PRIMARY KEY AUTOINCREMENT, card_id INTEGER NOT NULL REFERENCES cards(id) ON DELETE CASCADE, ts INTEGER NOT NULL, engine TEXT, transcript TEXT, score REAL, audio TEXT)",
-        "CREATE INDEX idx_pron_card ON pronunciations(card_id, ts)"
+        "CREATE INDEX idx_pron_card ON pronunciations(card_id, ts)",
+        "CREATE TABLE games(id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, scope TEXT NOT NULL, score INTEGER NOT NULL, correct INTEGER NOT NULL, wrong INTEGER NOT NULL, best_combo INTEGER NOT NULL DEFAULT 0, seconds INTEGER NOT NULL DEFAULT 0)",
+        "CREATE INDEX idx_games_ts ON games(ts)"
     };
 }

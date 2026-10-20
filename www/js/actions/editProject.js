@@ -1,3 +1,3 @@
-import { state } from '../state/appState.js';
 import go from '../nav/go.js';
-export default function editProject() { return go('projectForm', { id: state.nav.id }); }
+/** ✎ у проекта в списке (data-id). */
+export default function editProject(d) { return go('projectForm', { id: +d.id }); }

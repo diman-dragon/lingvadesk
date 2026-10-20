@@ -21,7 +21,7 @@ export default async function settingsView() {
     settingRow('Автоозвучка', prefControl('autoplay'), 'Произносить слово, когда оно появляется');
   const limits = settingRow('Новых карточек в день', prefControl('newPerDay'), 'Сколько новых слов добавляет интервальное повторение за день') +
     settingRow('Карточек за сессию', prefControl('sessionMax'), 'Просроченные идут первыми, самые давние — раньше');
-  const data = settingRow('Библиотека', row(button({ act: 'importLibrary', label: 'Импорт' }) + button({ act: 'exportLibrary', label: 'Экспорт' })), 'Вся библиотека одним файлом; импорт дублей не создаёт') +
+  const data = settingRow('Библиотека', row(button({ act: 'importLibrary', label: 'Файл' }) + button({ act: 'importPaste', label: 'Текст' }) + button({ act: 'exportLibrary', label: 'Экспорт' })), 'Импорт: CSV, TSV, TXT, Anki (.txt, .apkg), Quizlet, Excel, JSON; дублей не создаёт') +
     settingRow('Резервная копия (.fcbak)', row(button({ act: 'backup', cls: 'p', label: 'Создать' }) + button({ act: 'restore', label: 'Восстановить' })),
       'Перед восстановлением текущая БД сохраняется в защитную копию') +
     settingRow('Прогресс', button({ act: 'resetProgress', cls: 'd', label: 'Сбросить прогресс обучения' }), 'Карточки и колоды останутся; история повторений очистится');

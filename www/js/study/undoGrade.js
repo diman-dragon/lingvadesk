@@ -7,6 +7,6 @@ export default async function undoGrade(session) {
   Object.assign(session.map.get(u.id), u.srs);
   await updateCardSrs(u.id, u.srs);
   if (u.review) await deleteReview(u.review);
-  Object.assign(session, { order: u.order, pos: u.pos, undo: null });
+  Object.assign(session, { order: u.order, plan: new Set(u.plan), pos: u.pos, undo: null });
   session.log.length = u.logLen;
 }

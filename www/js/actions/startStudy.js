@@ -1,4 +1,8 @@
 import { state } from '../state/appState.js';
 import openStudy from '../study/openStudy.js';
-/** Режим — из настройки на вкладке «Учёба»; область — data-scope ('all' | 'p:<id>' | 'd:<id>') или колода data-id. */
-export default function startStudy(d) { return openStudy(state.prefs.mode, d.scope ?? `d:${d.id}`); }
+import openGame from '../game/openGame.js';
+/** Из меню колод: data-mode — режим ('game' — игра), data-scope — 'all' | 'd:<id>'. */
+export default function startStudy(d) {
+  state.sheet = null;
+  return d.mode === 'game' ? openGame(d.scope) : openStudy(d.mode, d.scope);
+}

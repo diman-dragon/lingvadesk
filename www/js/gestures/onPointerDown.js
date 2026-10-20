@@ -9,7 +9,7 @@ import holdCard from './holdCard.js';
  * клик после свайпа гасится. Поля ввода и списки выбора жест не начинают.
  */
 export default function onPointerDown(e) {
-  if (e.button > 0 || e.target.closest('input,textarea,select')) return;
+  if (e.button > 0 || e.target.closest('input,textarea,select,.sheet,.sheet-bg')) return;
   const inCard = e.target.closest('.flip');
   const card = inCard && !e.target.closest('button') ? inCard : null;
   const area = !inCard && SWIPE_SCREENS.includes(state.nav.v) && e.target.closest('.view');

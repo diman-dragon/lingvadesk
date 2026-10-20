@@ -1,6 +1,8 @@
 import toggleDir from './toggleDir.js';
 import setPref from './setPref.js';
 import startStudy from './startStudy.js';
+import openSheet from './openSheet.js';
+import closeSheet from './closeSheet.js';
 import flip from './flip.js';
 import pick from './pick.js';
 import check from './check.js';
@@ -14,8 +16,10 @@ import restart from './restart.js';
 import speak from './speak.js';
 import play from './play.js';
 import showText from './showText.js';
+import gamePick from './gamePick.js';
+import gameAgain from './gameAgain.js';
 import record from './record.js';
 /** Учёба: настройки, запуск, карточка (переворот, листание, ответы, отмена), озвучка и режимы «На слух» и «Говорить». */
 export default {
-  toggleDir, setPref, startStudy, flip, pick, check, hint, giveUp, undo, editSessionCard, skip, prev, restart, speak, play, showText, record
+  toggleDir, setPref, openSheet, closeSheet, startStudy, flip, pick, check, hint, giveUp, undo, editSessionCard, skip, prev, restart, speak, play, showText, record, gamePick, gameAgain
 };

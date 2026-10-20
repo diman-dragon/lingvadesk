@@ -7,6 +7,7 @@ export default async function popBack() {
     const prev = state.nav;
     state.nav = state.stack.pop();
     state.revealed = false;
+    state.sheet = null;
     state.anim = 'view-in';
     state.page = 0;
     try { await render(); if (state.nav.v === 'session') trackShow(state.session); return true; } catch { state.nav = prev; }
