@@ -273,11 +273,25 @@ test('«На слух»: плеер вместо текста, «Показат�
   await press('showText');
   assert.equal(track.hinted, true);
   const card = currentCard(state.session), due = card.due;
+  assert.equal(state.quiz.kind, 'choice');                        // на лице — варианты перевода, как в игре (независимо от настройки «Проверка»)
+  assert.equal(count(/data-act="pick"/), 4);
+  assert.match(app.innerHTML, /Выберите верный перевод/);
+  const right = state.quiz.options.indexOf(state.quiz.answer);
+  assert.equal(state.quiz.answer, 'яблоко');
   flipEl.cls.delete('flipped');
-  wait(2000); await press('flip'); wait(2000); await press('skip');   // подсмотрел, перевёл → «хорошо»
+  wait(2000); await press('pick', { i: right });                  // выбрал верный перевод
+  assert.equal(state.quiz.result, 'ok');
+  assert.match(fields.verdict.innerHTML, /✓ Верно/);
+  wait(2000); await press('skip');
   const last = (await listReviewsSince(0)).at(-1);
-  assert.deepEqual([last.mode, last.grade, Number(last.hinted), Number(last.plays), last.fresh], ['listen', 'good', 1, 1, 0]);
+  assert.deepEqual([last.mode, last.grade, Number(last.hinted), Number(last.plays), last.fresh], ['listen', 'hard', 1, 1, 0]);   // верно, но с подсказкой (показали текст) → «трудно»
   assert.equal(card.due, due);                                    // расписание не двигается
+  const wrong = state.quiz.options.findIndex(o => o !== state.quiz.answer);
+  await press('pick', { i: wrong });                              // неверный перевод → «снова», показан верный
+  assert.equal(state.quiz.result, 'bad');
+  assert.match(fields.verdict.innerHTML, /✗ Неверно/);
+  wait(2000); await press('skip');
+  assert.equal((await listReviewsSince(0)).at(-1).grade, 'again');
   await press('back');
 });
 

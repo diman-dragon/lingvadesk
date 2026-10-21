@@ -1,6 +1,6 @@
 # Карта проекта LingvaDesk (читать ПЕРВОЙ — вместо чтения всего кода)
 
-> Версия 1.9.0 · Capacitor 6.2.0 (Android) · JS без сборки (ES-модули) в `www/`, Java-плагины в `android/`.
+> Версия 1.9.1 · Capacitor 6.2.0 (Android) · JS без сборки (ES-модули) в `www/`, Java-плагины в `android/`.
 > Правило кода: **один файл — одна функция** (≤45 строк JS), слои вниз: `actions → study/deckio/backup → repo → native → Java`; `views → components`.
 > Обновляй эту карту при каждом изменении структуры (и поднимай версию — см. «Релиз»).
 
@@ -17,6 +17,7 @@
 | Вкладки / нижняя панель | `constants/TABS`, `components/tabBar`, `nav/render` |
 | Навигация, «Назад», свайпы по кольцу | `nav/*` (`go`, `popBack`, `systemBack`, `swipeNavigate`, `switchRing`), `gestures/*`, `events/*` |
 | Учёба: режимы и выбор колоды | `views/studyHubView`, `components/modeEntry`, `constants/MODE_INFO`, `components/deckSheet`, `actions/{openSheet,closeSheet,startStudy}` |
+| «На слух» с вариантами | `study/makeQuiz` (listen → всегда `choice`), `views/listenFace`, `quizControls`, `actions/pick` |
 | Сессия учёбы | `study/*` (`openStudy`, `startSession`, `buildOrder`, `gradeCard`, `track*`, `makeQuiz`), `views/sessionView` + `studyFace/listenFace/speakFace` |
 | Алгоритм SRS | `srs/*` (`nextSrs`, `nextInterval`, `nextEase`, `inferGrade`, `calibrate`, `speechGrade`) |
 | Игра | `game/*`, `views/gameView`, таблица `games` |
@@ -70,6 +71,7 @@
 `docs/ARCHITECTURE.md` (подробно по экранам/учёбе/жестам) · `CONVENTIONS.md` · `FORMATS.md` (форматы файлов) · `UPDATES.md` · `DECISIONS.md` (слияние с LingoCards) · `CHANGELOG.md` (история по версиям).
 
 ## 9. Недавние изменения
+- **1.9.1** — «На слух»: всегда выбор из 4 переводов (`study/makeQuiz`: для `listen` принудительно `choice` + направление `fwd`; лицо — `views/listenFace`, кнопки — `views/quizControls`, ответ — `actions/pick` → `study/finishQuiz`).
 - **1.9.0** — исправлены «залипающие» нажатия кнопок звука/микрофона/тестов (устаревшая метка подавления клика после свайпа); порядок карточек в учёбе случайный; сводка на карточках учёбы; статистика — список/сетка + подробные окна (`stats/*`, `statSheet`, `sheetShell`, `openStat`); `late` в `listDeckStats`; старые `views/stats{Overview,Grades,Decks,Hard,Speech}` удалены; в конвенции п.0 «читать карту».
 - **1.8.0** — вкладка «Учёба»: режимы как элементы списка/сетки с переключателем и страницами (`modeEntry`, `lead` в `navItem/navTile`; `modeTile` удалён; `openSheet` берёт режим из `data-id`).
 - 1.7.1 — ошибка распознавания 13, пакеты языков, перенос текста; 4 вкладки. 1.7.0 — значок-предупреждение, игра «Блиц», расширенный импорт.
