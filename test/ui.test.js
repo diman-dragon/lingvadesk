@@ -135,7 +135,7 @@ test('учёба: «Давай-ка поучим…» — режимы; нажа
   assert.doesNotMatch(page(), /Обучение|Случайная колода|Что учим|Порядок карточек/);
   assert.equal(count(/data-act="openSheet"/), 5);
   assert.doesNotMatch(page(), /class="sheet"/);
-  await press('openSheet', { mode: 'srs' });                     // выпадающее меню колод
+  await press('openSheet', { id: 'srs' });                     // выпадающее меню колод
   assert.equal(state.sheet, 'srs');
   assert.match(page(), /class="sheet"/);
   for (const t of ['Интервальное повторение', 'Все колоды', 'Basics', 'English · повторить 0 · новых 8']) assert.match(page(), new RegExp(t));
@@ -143,13 +143,29 @@ test('учёба: «Давай-ка поучим…» — режимы; нажа
   await systemBack();                                            // «Назад» сначала закрывает меню
   assert.equal(state.sheet, null);
   assert.equal(state.nav.v, 'study');
-  await press('openSheet', { mode: 'listen' });
+  await press('openSheet', { id: 'listen' });
   assert.match(page(), /English · карточек 8/);
   await press('closeSheet');
   assert.doesNotMatch(page(), /class="sheet"/);
   await press('startStudy', { mode: 'srs', scope: 'p:999' });     // нет такой области: пустая очередь не открывается
   assert.equal(state.nav.v, 'study');
   assert.match(toastEl.textContent, /нет карточек/);
+});
+
+test('учёба: режимы — список ⇄ сетка, как проекты и колоды', async () => {
+  await press('goStudy');
+  assert.equal(state.pager.items.length, 5);                     // режимы выводятся страницами
+  assert.equal(count(/class="item"/), 5);
+  assert.match(app.innerHTML, /<header>.*data-act="toggleLayout"/);
+  await press('toggleLayout');
+  assert.match(page(), /class="page grid /);
+  assert.equal(count(/class="gtile"/), 5);
+  assert.equal(count(/data-act="openSheet"/), 5);
+  await press('openSheet', { id: 'game' });
+  assert.equal(state.sheet, 'game');
+  await press('closeSheet');
+  await press('toggleLayout');
+  assert.equal(count(/class="item"/), 5);
 });
 
 test('интервальное повторение: оценка по поведению, без кнопок оценки, листание по кругу', async () => {

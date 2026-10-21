@@ -94,13 +94,9 @@ button.ib[data-act^="del"]{color:var(--again)}
 .stat b{display:block;font-size:24px;line-height:1.1;font-weight:800;color:var(--accent)}
 .stat span{font-size:11px;color:var(--muted);display:block;line-height:1.2}
 
-/* ===== Учёба: плитки режимов ===== */
-.tile{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border-radius:18px;padding:10px 14px;margin-bottom:8px;box-shadow:var(--shadow)}
-.tile .ti{flex:none;width:46px;height:46px;border-radius:14px;background:var(--surface2);display:grid;place-items:center;font-size:24px}
-.tile.off{opacity:.55}
-.tile .tt{flex:1;min-width:0}
-.tile b{display:block}
-.tile small{display:block;color:var(--muted);font-size:13px;line-height:1.25}
+/* ===== Учёба: режимы — как элементы библиотеки (список / сетка) ===== */
+.avatar.ico{background:var(--surface2);color:var(--text);font-size:24px;font-weight:400}
+.gtile .avatar.ico{font-size:26px}
 .order{margin-top:2px}
 .order>span{display:block;font-size:13px;font-weight:650;color:var(--muted);margin:0 0 6px 2px}
 
@@ -249,7 +245,6 @@ button.speak.mic.rec{animation:recPulse 1s ease-in-out infinite;background:linea
 
 /* ===== Низкие экраны (≤ 700px): компактнее, чтобы всё помещалось без прокрутки ===== */
 @media (max-height:700px){
-  .tile{padding:8px 12px;margin-bottom:6px}.tile .ti{width:40px;height:40px;font-size:21px}.tile small{display:none}
   .stat{padding:8px 4px}.stat b{font-size:22px}.stats{margin-bottom:8px}
   header{margin-bottom:8px}.field{margin-bottom:8px}
   .setting{padding:10px 0}.s-title{margin-bottom:6px}
@@ -265,7 +260,6 @@ button.speak.mic.rec{animation:recPulse 1s ease-in-out infinite;background:linea
 /* ===== Совсем низкие экраны (≤ 600px) ===== */
 @media (max-height:600px){
   header{min-height:36px;margin-bottom:6px}header h1{font-size:21px}button.icon{width:36px;height:36px;font-size:18px}
-  .tile{padding:6px 10px;margin-bottom:5px}.tile .ti{width:34px;height:34px;font-size:18px}
   .stat{padding:6px 4px}.stat b{font-size:20px}.order>span{margin-bottom:3px}
   .setting{padding:6px 0}.s-title{margin-bottom:4px}.seg button{padding:6px 4px;font-size:13px}.group{padding:0 12px}
   .tabs .tab{padding:3px 4px}.tab .ti{font-size:18px}

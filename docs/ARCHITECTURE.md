@@ -30,7 +30,7 @@
 ## Учёба (`study/`)
 - Принцип: **всё пишется в базу и читается из неё**. В `settings` — только настройки; сессия нигде не сохраняется (очередь строится заново из `cards`),
   «сегодня», серии и дневной лимит новых считаются из `reviews` (`study/loadToday`, `study/streaks`, `repo/countNewByDeck`).
-- Вкладка «Учёба» («Давай-ка поучим…»): режим (`prefs.mode`: `srs` | `listen`) и список колод с их счётчиками (`repo/listDeckStats`); плитка «Все колоды».
+- Вкладка «Учёба» («Давай-ка поучим…»): режимы — элементы списка / сетки (`components/modeEntry` → `entry`, переключатель `layoutToggle`, страницы `pagedList`, как в библиотеке); нажатие раскрывает меню колод `deckSheet` со счётчиками (`repo/listDeckStats`) и пунктом «Все колоды».
   Область сессии — `'all' | 'p:<id>' | 'd:<id>'` (`repo/scopeClause`).
 - `srs` — интервальное повторение: просроченные (давние первыми) + новые, **не больше `newPerDay` на каждую колоду** (`study/buildOrder`, `study/loadLimits`), всё не больше `sessionMax`.
 - `listen` — «На слух»: `views/listenFace` (плеер, спрятанный текст, `actions/showText`, `actions/play`), давно не слушанные первыми (`ll` в `repo/listCardsInScope`); пишет только историю.
