@@ -14,6 +14,8 @@ globalThis.document = {
   getElementById: id => id === 'app' ? app : id === 'toast' ? toastEl : (fields[id] ??= { value: '', innerHTML: '' })
 };
 globalThis.confirm = () => true;
+const realRandom = Math.random;
+Math.random = () => 0.999999;   // перемешивание → тождественное: порядок карточек в сценариях предсказуем (случайность проверяет отдельный тест)
 const bridge = installBridge();
 
 const imp = p => import(`../www/js/${p}`).then(m => m.default);
@@ -127,6 +129,16 @@ test('библиотека: список ⇄ сетка на всех уровн
   assert.match(page(), /class="item"/);
 });
 
+test('кнопка сразу после свайпа, не давшего клика, не теряется', async () => {
+  const { swipe } = await import('../www/js/gestures/swipeState.js');
+  const consume = await imp('gestures/consumeSuppress.js');
+  swipe.suppress = Date.now();
+  assert.equal(consume(), true);                                  // клик сразу после жеста гасится
+  assert.equal(consume(), false);                                 // и только один раз
+  swipe.suppress = Date.now() - 1000;                             // жест был давно, клика не было
+  assert.equal(consume(), false);                                 // следующее нажатие кнопки проходит
+});
+
 test('учёба: «Давай-ка поучим…» — режимы; нажатие на режим раскрывает меню колод; план дня', async () => {
   await press('goStudy');
   assert.equal(count(/class="tab on"/), 1);
@@ -134,6 +146,11 @@ test('учёба: «Давай-ка поучим…» — режимы; нажа
   for (const t of ['к повторению', 'новых', 'сегодня', 'дней подряд', 'Интервальное повторение', 'Карточки', 'На слух', 'Игра', 'Проверка произношения', 'По плану на сегодня: 8']) assert.match(page(), new RegExp(t));
   assert.doesNotMatch(page(), /Обучение|Случайная колода|Что учим|Порядок карточек/);
   assert.equal(count(/data-act="openSheet"/), 5);
+  assert.equal(count(/class="sinfo"/), 5);                      // на каждом режиме: всего · изучено · сегодня
+  assert.match(page(), /всего <b>8<\/b>/);
+  assert.match(page(), /изучено <b>0<\/b>/);
+  assert.match(page(), /class="today lv1">сегодня <b>8<\/b>/);
+  assert.doesNotMatch(page(), /class="late"/);
   assert.doesNotMatch(page(), /class="sheet"/);
   await press('openSheet', { id: 'srs' });                     // выпадающее меню колод
   assert.equal(state.sheet, 'srs');
@@ -152,6 +169,15 @@ test('учёба: «Давай-ка поучим…» — режимы; нажа
   assert.match(toastEl.textContent, /нет карточек/);
 });
 
+test('карточка учёбы: 4 градации «сегодня» и красный «?» при просрочке', async () => {
+  const loadLevel = await imp('study/loadLevel.js');
+  assert.deepEqual([0, 1, 10, 11, 30, 31, 500].map(loadLevel), [0, 1, 1, 2, 2, 3, 3]);
+  const studyInfo = await imp('components/studyInfo.js');
+  assert.doesNotMatch(studyInfo({ total: 5, learned: 2, left: 0, late: 0 }), /class="late"/);
+  assert.match(studyInfo({ total: 5, learned: 2, left: 0, late: 0 }), /today lv0">сегодня <b>0/);
+  assert.match(studyInfo({ total: 50, learned: 20, left: 40, late: 3 }), /today lv3">сегодня <b>40<\/b><\/span><span class="late"[^>]*>\?<\/span><\/span>$/);
+});
+
 test('учёба: режимы — список ⇄ сетка, как проекты и колоды', async () => {
   await press('goStudy');
   assert.equal(state.pager.items.length, 5);                     // режимы выводятся страницами
@@ -166,6 +192,21 @@ test('учёба: режимы — список ⇄ сетка, как прое�
   await press('closeSheet');
   await press('toggleLayout');
   assert.equal(count(/class="item"/), 5);
+});
+
+test('порядок карточек в учёбе случайный (не по алфавиту / не по порядку колоды)', async () => {
+  const buildOrder = await imp('study/buildOrder.js');
+  const cards = Array.from({ length: 30 }, (_, i) => ({ id: i, deck_id: 1, ord: i, due: 0, ll: 0, interval: 0, reps: 0 }));
+  Math.random = realRandom;
+  try {
+    const seen = new Set();
+    for (let k = 0; k < 6; k++) for (const m of ['cards', 'srs', 'listen']) {
+      const { order } = buildOrder(m, cards, { perDay: 99, max: 99, used: {} });
+      assert.deepEqual([...order].sort((a, b) => a - b), cards.map(c => c.id));   // те же карточки, без потерь
+      seen.add(order.join());
+    }
+    assert.ok(seen.size > 3, 'порядок меняется от запуска к запуску');
+  } finally { Math.random = () => 0.999999; }
 });
 
 test('интервальное повторение: оценка по поведению, без кнопок оценки, листание по кругу', async () => {
@@ -696,15 +737,36 @@ test('долгое нажатие на карточку открывает её 
   await press('back');
 });
 
-test('статистика: пять страниц, всё из истории в базе', async () => {
-  setHeight(500);
+test('статистика: параметры списком / сеткой, по нажатию — подробное окно, всё из истории в базе', async () => {
+  setHeight(900);
   await press('goStudy');
   await press('goStats');
   assert.equal(state.nav.v, 'stats');
-  assert.equal(state.pager.fixed, true);
-  assert.equal(count(/class="dtab/, page()), 5);
+  assert.equal(state.pager.items.length, 12);
+  assert.equal(count(/data-act="openStat"/), 12);
+  assert.match(app.innerHTML, /<header>.*data-act="toggleLayout"/);
+  assert.doesNotMatch(page(), /class="sheet"/);
   const all = state.pager.items.join('');
-  for (const t of ['Обзор', 'сегодня', '7 дней', '30 дней', 'всего', 'удержание', 'лучшая серия', 'выучено', 'Повторений по дням', 'Оценки за 30 дней', 'Снова', 'на слух', 'с подсказкой', 'вспоминание', 'Колоды', 'Basics', 'Чаще всего', 'Придёт на повторение', 'Речь', 'попыток', 'средняя оценка', 'Попыток по дням']) assert.match(all, new RegExp(t));
+  for (const t of ['Сегодня', 'Серия', 'Удержание', 'Выучено', 'Оценки', 'На слух и подсказки', 'Время', 'Колоды', 'Трудные', 'Прогноз', 'Речь', 'Слабые слова']) assert.match(all, new RegExp(t));
+  const detail = {};
+  for (let i = 0; i < 12; i++) {
+    await press('openStat', { id: i });
+    assert.equal(state.sheet, `stat:${i}`);
+    assert.match(page(), /class="sheet"/);
+    detail[i] = page();
+    await press('closeSheet');
+    assert.equal(state.sheet, null);
+  }
+  for (const [i, ts] of [[0, ['сегодня', '7 дней', '30 дней', 'всего', 'Повторений по дням']], [1, ['дней подряд', 'лучшая серия']], [2, ['удержание']], [3, ['выучено', 'новых']],
+    [4, ['Оценки за 30 дней', 'Снова']], [5, ['на слух', 'с подсказкой']], [6, ['вспоминание']], [7, ['Basics']], [8, ['Чаще всего']], [9, ['Придёт на повторение']], [10, ['попыток', 'средняя оценка', 'Попыток по дням']], [11, ['Хуже всего']]])
+    for (const t of ts) assert.match(detail[i], new RegExp(t), `окно ${i}: ${t}`);
+  await press('openStat', { id: 0 });
+  await systemBack();                                            // «Назад» закрывает окно, а не уходит с экрана
+  assert.equal(state.sheet, null);
+  assert.equal(state.nav.v, 'stats');
+  await press('toggleLayout');
+  assert.equal(count(/class="gtile"/), 12);
+  await press('toggleLayout');
   assert.match(app.innerHTML, /class="tab on" data-act="goStats"/);
   await press('goStudy');
   assert.equal(state.nav.v, 'study');

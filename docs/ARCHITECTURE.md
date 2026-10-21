@@ -42,7 +42,9 @@
 - Оценок кнопками нет: `srs/inferGrade` выводит оценку из поведения (`study/track*`: время до переворота и на ответе, перевороты, возвраты, прослушивания, подсказка);
   калибровка порогов — `srs/calibrate`; вопросы выбором / вводом — `study/makeQuiz`, `study/finishQuiz`. `study/gradeCard` пишет в `reviews` и (в `srs`) двигает SM-2 (`srs/nextSrs`);
   `study/undoGrade` откатывает последнюю оценку; «пиявки» — `study/checkLeech`.
-- Статистика (`views/statsView` + `statsOverview / statsGrades / statsDecks / statsHard`): всё из `reviews` и `cards`.
+- Статистика (`views/statsView` + `stats/*`): 12 параметров — элементы списка / сетки (`entry`), по нажатию подробное окно (`components/statSheet`, `state.sheet = 'stat:<n>'`); всё из `reviews`, `pronunciations` и `cards`.
+- Сводка на режимах «Учёбы» (`components/studyInfo`): всего · изучено · на сегодня (4 градации цвета `study/loadLevel`) и красный «?», если есть просроченные (`listDeckStats.late` — срок раньше начала сегодняшних суток).
+- Порядок карточек в сессии всегда случайный (`study/buildOrder`).
 - **Схема БД v3** (`db/Schema`, миграции `db/MigrateV2`, `db/MigrateV3`; тест `test/migration.test.js` сверяет, что миграция даёт ту же схему, что чистая установка).
   `reviews(card_id, ts, grade, think, look, fresh, mode, hinted, plays)`; `pronunciations(card_id, ts, engine, transcript, score, audio)` — заготовка под проверку произношения (позже).
 

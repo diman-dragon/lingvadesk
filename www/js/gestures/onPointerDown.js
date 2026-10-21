@@ -9,13 +9,14 @@ import holdCard from './holdCard.js';
  * клик после свайпа гасится. Поля ввода и списки выбора жест не начинают.
  */
 export default function onPointerDown(e) {
+  swipe.suppress = 0;   // новое касание: старая метка жеста не должна гасить это нажатие (в сессии жест может не начаться)
   if (e.button > 0 || e.target.closest('input,textarea,select,.sheet,.sheet-bg')) return;
   const inCard = e.target.closest('.flip');
   const card = inCard && !e.target.closest('button') ? inCard : null;
   const area = !inCard && SWIPE_SCREENS.includes(state.nav.v) && e.target.closest('.view');
   const el = card || area;
   if (!el) return;
-  Object.assign(swipe, { id: e.pointerId, x0: e.clientX, y0: e.clientY, dx: 0, t0: Date.now(), el, kind: card ? 'card' : 'area', moved: false, suppress: false });
+  Object.assign(swipe, { id: e.pointerId, x0: e.clientX, y0: e.clientY, dx: 0, t0: Date.now(), el, kind: card ? 'card' : 'area', moved: false, suppress: 0 });
   cancelHold();
   if (card) swipe.hold = setTimeout(holdCard, SWIPE.holdMs);
 }

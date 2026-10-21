@@ -6,7 +6,7 @@ export default function holdCard() {
   swipe.hold = 0;
   if (!swipe.el || swipe.moved || swipe.kind !== 'card') return;
   swipe.el = null;
-  swipe.suppress = true;
+  swipe.suppress = Date.now();
   buzz(25);
   return actions.editSessionCard();
 }

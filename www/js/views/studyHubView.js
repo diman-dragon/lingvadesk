@@ -30,6 +30,7 @@ export default async function studyHubView() {
   const info = planInfo(decks, lim), left = sum(info, d => d.left), fresh = sum(info, d => d.fresh);
   const stats = row(statCard(sum(info, d => Number(d.due)), 'к повторению') + statCard(fresh, 'новых') + statCard(today.n, 'сегодня') + statCard(today.current, 'дней подряд'), 'stats');
   const plan = left ? `По плану на сегодня: ${left}` : today.n ? '✓ Дневной план выполнен — можно учить дальше' : '✓ На сегодня ничего не запланировано';
-  const modes = pagedList(MODE_INFO.map(m => modeEntry(m, m.mode === 'srs' ? left : m.mode === 'game' ? `🏆 ${best}` : total)));
+  const sums = { total, learned: total - sum(decks, d => Number(d.fresh)), left, late: sum(decks, d => Number(d.late)) };
+  const modes = pagedList(MODE_INFO.map(m => modeEntry(m, sums, m.mode === 'game' ? `🏆 ${best}` : '')));
   return top + stats + `<div class="plan${left ? '' : ' done'}">${plan}</div>${modes}${state.sheet ? deckSheet(state.sheet, info) : ''}`;
 }

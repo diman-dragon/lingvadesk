@@ -177,7 +177,10 @@ test('статистика из базы: по колодам, трудные к
   await updateCardSrs(b, { due: t + 2 * 86400000, interval: 2, ease: 2.5, reps: 1 });
   assert.equal((await listDueSoon(t + 5 * 86400000)).length, 1);
   const stats = (await listDeckStats())[0];
-  assert.deepEqual([Number(stats.total), Number(stats.fresh)], [8, 7]);
+  assert.deepEqual([Number(stats.total), Number(stats.fresh), Number(stats.late)], [8, 7, 0]);   // срок впереди — не просрочено
+  await updateCardSrs(b, { due: Date.now() - 2 * 86400000, interval: 2, ease: 2.5, reps: 1 });
+  assert.deepEqual([Number((await listDeckStats())[0].late), Number((await listDeckStats())[0].due)], [1, 1]);   // срок был позавчера — просрочено
+  await updateCardSrs(b, { due: t + 2 * 86400000, interval: 2, ease: 2.5, reps: 1 });
   await resetProgress();
   assert.equal((await listReviewsSince(0)).length, 0);
   assert.equal(Number((await listDeckStats())[0].fresh), 8);
