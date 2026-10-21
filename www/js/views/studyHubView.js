@@ -1,4 +1,3 @@
-import { state } from '../state/appState.js';
 import { MODE_INFO } from '../constants/MODE_INFO.js';
 import listDeckStats from '../repo/listDeckStats.js';
 import loadLimits from '../study/loadLimits.js';
@@ -11,13 +10,12 @@ import statCard from '../components/statCard.js';
 import modeEntry from '../components/modeEntry.js';
 import pagedList from '../components/pagedList.js';
 import layoutToggle from '../components/layoutToggle.js';
-import deckSheet from '../components/deckSheet.js';
 import emptyState from '../components/emptyState.js';
 import row from '../components/row.js';
 const sum = (list, f) => list.reduce((a, x) => a + f(x), 0);
 /**
  * «Давай-ка поучим…»: режимы (интервальное повторение, карточки, на слух, игра, проверка произношения) — списком или сеткой, страницами,
- * как проекты и колоды. Нажатие на режим раскрывает меню колод (state.sheet). План дня — повторить + новые в пределах лимита; когда он выполнен, учёба продолжается без лимита.
+ * как проекты и колоды. Нажатие на режим открывает экран колод режима (studyDecksView). План дня — повторить + новые в пределах лимита; когда он выполнен, учёба продолжается без лимита.
  * Все числа читаются из базы.
  */
 export default async function studyHubView() {
@@ -32,5 +30,5 @@ export default async function studyHubView() {
   const plan = left ? `По плану на сегодня: ${left}` : today.n ? '✓ Дневной план выполнен — можно учить дальше' : '✓ На сегодня ничего не запланировано';
   const sums = { total, learned: total - sum(decks, d => Number(d.fresh)), left, late: sum(decks, d => Number(d.late)) };
   const modes = pagedList(MODE_INFO.map(m => modeEntry(m, sums, m.mode === 'game' ? `🏆 ${best}` : '')));
-  return top + stats + `<div class="plan${left ? '' : ' done'}">${plan}</div>${modes}${state.sheet ? deckSheet(state.sheet, info) : ''}`;
+  return top + stats + `<div class="plan${left ? '' : ' done'}">${plan}</div>${modes}`;
 }

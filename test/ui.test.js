@@ -139,32 +139,62 @@ test('кнопка сразу после свайпа, не давшего кл�
   assert.equal(consume(), false);                                 // следующее нажатие кнопки проходит
 });
 
-test('учёба: «Давай-ка поучим…» — режимы; нажатие на режим раскрывает меню колод; план дня', async () => {
+test('учёба: «Давай-ка поучим…» — режимы; нажатие на режим открывает экран колод; план дня', async () => {
   await press('goStudy');
   assert.equal(count(/class="tab on"/), 1);
   assert.match(page(), /Давай-ка поучим/);
   for (const t of ['к повторению', 'новых', 'сегодня', 'дней подряд', 'Интервальное повторение', 'Карточки', 'На слух', 'Игра', 'Проверка произношения', 'По плану на сегодня: 8']) assert.match(page(), new RegExp(t));
   assert.doesNotMatch(page(), /Обучение|Случайная колода|Что учим|Порядок карточек/);
-  assert.equal(count(/data-act="openSheet"/), 5);
+  assert.equal(count(/data-act="openMode"/), 5);
   assert.equal(count(/class="sinfo"/), 5);                      // на каждом режиме: всего · изучено · сегодня
   assert.match(page(), /всего <b>8<\/b>/);
   assert.match(page(), /изучено <b>0<\/b>/);
   assert.match(page(), /class="today lv1">сегодня <b>8<\/b>/);
   assert.doesNotMatch(page(), /class="late"/);
-  assert.doesNotMatch(page(), /class="sheet"/);
-  await press('openSheet', { id: 'srs' });                     // выпадающее меню колод
-  assert.equal(state.sheet, 'srs');
-  assert.match(page(), /class="sheet"/);
-  for (const t of ['Интервальное повторение', 'Все колоды', 'Basics', 'English · повторить 0 · новых 8']) assert.match(page(), new RegExp(t));
-  assert.equal(count(/data-act="startStudy"/), 2);                // «Все колоды» и колода
-  await systemBack();                                            // «Назад» сначала закрывает меню
-  assert.equal(state.sheet, null);
+  await press('openMode', { id: 'srs' });                       // экран колод режима — тот же список / сетка с информацией
+  assert.equal(state.nav.v, 'studyDecks');
+  assert.equal(count(/class="tab on"/), 1);
+  assert.match(app.innerHTML, /<header>.*Интервальное повторение.*data-act="toggleLayout"/);
+  for (const t of ['Все колоды', 'English', 'выучено 0 · в процессе 0 · новых 8', 'class="sinfo"', 'всего <b>8</b>', 'изучено <b>0</b>', 'today lv1">сегодня <b>8']) assert.match(page(), new RegExp(t));
+  assert.equal(count(/data-act="pickScope"/), 1);                 // «Все колоды»
+  assert.equal(count(/data-act="openProjectDecks"/), 1);          // проект English (колоды сгруппированы по проектам)
+  assert.match(page(), /колод: 1 · выучено 0/);
+  assert.equal(count(/class="item"/), 2);
+  await press('toggleLayout');
+  assert.equal(count(/class="gtile"/), 2);
+  await press('toggleLayout');
+  await press('openProjectDecks', { id: 1 });                    // колоды проекта
+  assert.equal(state.nav.project, 1);
+  assert.match(app.innerHTML, /<header>.*English.*data-act="toggleLayout"/);
+  for (const t of ['Весь проект', 'Basics', 'Интервальное повторение', 'всего <b>8</b>']) assert.match(page(), new RegExp(t));
+  assert.equal(count(/data-act="pickScope"/), 2);                 // весь проект и колода
+  assert.match(page(), /data-id="p:1"/);
+  assert.match(page(), /data-id="d:1"/);
+  await press('back');                                           // «Назад» — к проектам режима
+  assert.equal([state.nav.v, state.nav.project].join(), 'studyDecks,');
+  await systemBack();                                            // «Назад» — на вкладку «Учёба»
   assert.equal(state.nav.v, 'study');
-  await press('openSheet', { id: 'listen' });
-  assert.match(page(), /English · карточек 8/);
-  await press('closeSheet');
-  assert.doesNotMatch(page(), /class="sheet"/);
-  await press('startStudy', { mode: 'srs', scope: 'p:999' });     // нет такой области: пустая очередь не открывается
+  await press('openMode', { id: 'listen' });
+  assert.match(page(), /На слух/);
+  await press('back');
+  assert.equal(state.nav.v, 'study');
+  await press('openMode', { id: 'srs' });
+  await press('pickScope', { id: 'p:999' });                      // нет такой области: пустая очередь не открывается
+  assert.equal(state.nav.v, 'studyDecks');
+  await press('openProjectDecks', { id: 1 });
+  await press('pickScope', { id: 'd:1' });                        // колода с экрана режима запускает этот режим
+  assert.equal([state.nav.v, state.session.mode, state.session.scope].join(), 'session,srs,d:1');
+  await press('back');                                           // «Назад» из сессии — снова колоды проекта
+  assert.deepEqual([state.nav.v, state.nav.project], ['studyDecks', 1]);
+  await press('pickScope', { id: 'p:1' });                        // «Весь проект»
+  assert.equal(state.session.scope, 'p:1');
+  assert.equal(state.session.total, 8);
+  await press('back');
+  await press('back');
+  assert.equal(state.nav.v, 'studyDecks');
+  await press('back');
+  assert.equal(state.nav.v, 'study');
+  await press('startStudy', { mode: 'srs', scope: 'p:999' });
   assert.equal(state.nav.v, 'study');
   assert.match(toastEl.textContent, /нет карточек/);
 });
@@ -186,10 +216,7 @@ test('учёба: режимы — список ⇄ сетка, как прое�
   await press('toggleLayout');
   assert.match(page(), /class="page grid /);
   assert.equal(count(/class="gtile"/), 5);
-  assert.equal(count(/data-act="openSheet"/), 5);
-  await press('openSheet', { id: 'game' });
-  assert.equal(state.sheet, 'game');
-  await press('closeSheet');
+  assert.equal(count(/data-act="openMode"/), 5);
   await press('toggleLayout');
   assert.equal(count(/class="item"/), 5);
 });
