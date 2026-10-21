@@ -9,7 +9,6 @@ import listWeakWords from '../repo/listWeakWords.js';
 import loadToday from '../study/loadToday.js';
 import dayStart from '../util/dayStart.js';
 import header from '../components/header.js';
-import backButton from '../components/backButton.js';
 import pagedList from '../components/pagedList.js';
 import settingsGroup from '../components/settingsGroup.js';
 import statsOverview from './statsOverview.js';
@@ -25,6 +24,6 @@ export default async function statsView() {
     listPronunciationsSince(since), listWeakWords(since, 6)]);
   const d = { rows, total, today, decks, perDeck, hard, dues, speech, weak, since7: dayStart(-6) };
   const pages = [['Обзор', statsOverview(d)], ['Оценки', statsGrades(d)], ['Колоды', statsDecks(d)], ['Трудные', statsHard(d)], ['Речь', statsSpeech(d)]];
-  return header('Статистика', { left: backButton('back'), gear: false }) +
+  return header('Статистика') +
     pagedList(pages.map(([title, html]) => settingsGroup(title, html)), { fixed: true, titles: pages.map(p => p[0]) });
 }

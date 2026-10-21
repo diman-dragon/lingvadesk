@@ -1,6 +1,7 @@
 import { state } from '../state/appState.js';
 import { SPEECH } from '../constants/SPEECH.js';
 import speechListen from '../native/speechListen.js';
+import prepareSpeech from '../study/prepareSpeech.js';
 import insertPronunciation from '../repo/insertPronunciation.js';
 import currentCard from '../study/currentCard.js';
 import scoreSpeech from '../study/scoreSpeech.js';
@@ -16,6 +17,7 @@ export default async function record(d, el) {
   el?.classList?.add('rec');
   box.innerHTML = '<div class="sres">Слушаю…</div>';
   try {
+    await prepareSpeech(card.tts);
     const r = await speechListen(card.tts);
     const score = scoreSpeech(r, card.front), prev = state.speech?.id === card.id ? state.speech.attempts : 0;
     await insertPronunciation(card.id, { engine: SPEECH.engine, transcript: r.text, score, audio: r.audio ?? null });

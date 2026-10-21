@@ -58,15 +58,17 @@ const setHeight = h => { fields.pager = { innerHTML: '', clientHeight: h }; };
 
 test.before(() => bridge.reset());
 
-test('запуск: библиотека, две вкладки внизу, настройки в шапке', async () => {
+test('запуск: библиотека, четыре вкладки внизу (статистика и настройки — тоже там), шапка без шестерёнки', async () => {
   await boot();
   assert.equal(state.nav.v, 'library');
   assert.match(page(), /Проектов пока нет/);
   assert.match(page(), /<span>Библиотека<\/span>/);
   assert.match(page(), /<span>Учёба<\/span>/);
-  assert.doesNotMatch(page(), /Сегодня|Настройки<\/span>/);
+  assert.match(page(), /<span>Статистика<\/span>/);
+  assert.match(page(), /<span>Настройки<\/span>/);
+  assert.equal(count(/class="tab( on)?"/), 4);
   assert.equal(count(/class="tab on"/), 1);
-  assert.match(app.innerHTML, /<header>.*data-act="goSettings"/);
+  assert.doesNotMatch(app.innerHTML, /<header>(?:(?!<\/header>)[\s\S])*data-act="(goSettings|goStats)"/);   // из шапки убраны
   assert.match(page(), /\+ Проект/);
   assert.doesNotMatch(page(), /data-act="importLibrary"|data-act="exportLibrary"/);   // импорт и экспорт — в настройках
 });
@@ -157,7 +159,7 @@ test('интервальное повторение: оценка по пове�
   assert.match(page(), /Осталось 8 из 8/);
   assert.match(page(), /English · Basics/);
   assert.match(app.innerHTML, /class="tabs"/);                   // нижняя панель не пропадает
-  assert.doesNotMatch(app.innerHTML, /<header>.*data-act="goSettings"/);
+  assert.doesNotMatch(app.innerHTML, /<header>(?:(?!<\/header>)[\s\S])*data-act="goSettings"/);
   assert.match(app.innerHTML, /class="flip" data-act="flip"/);
   assert.match(app.innerHTML, /<button class="speak lg" data-act="speak" aria-label="Озвучить"[^>]*><svg/);
   assert.match(app.innerHTML, /Перевернуть/);
@@ -236,7 +238,7 @@ test('«Говорить»: микрофон → оценка сходства, 
   assert.deepEqual([state.speech, state.listening], [null, false]);
   bridge.io.heard = { text: 'aple', confidence: 0.6, alternatives: ['apple'], audio: null };
   await press('record', { lang: 'en-US' });
-  assert.deepEqual(bridge.io.listened, { lang: 'en-US' });
+  assert.deepEqual(bridge.io.listened, { action: 'listen', lang: 'en-US' });
   assert.deepEqual([state.speech.attempts, state.speech.score], [1, 0.94]);
   assert.match(fields.speechres.innerHTML, /94%/);
   await press('skip');
@@ -320,12 +322,12 @@ test('страницы вместо прокрутки: число элемен�
   for (let i = 1; i <= 10; i++) await insertProject(`Proj${String(i).padStart(2, '0')}`, 'en-US');
   setHeight(222);                                                // (222+10)/(64+10) = 3 в странице
   await press('goLibrary');
-  assert.equal(state.pager.per, 3);
+  assert.deepEqual(state.pager.starts, [0, 3, 6, 9]);
   assert.equal(count(/class="item"/), 3);
   assert.equal(count(/class="dot( on)?"/), 4);                          // 11 проектов → 4 страницы
   setHeight(500);
   await press('goStudy'); await press('goLibrary');
-  assert.equal(state.pager.per, 6);
+  assert.deepEqual(state.pager.starts, [0, 6]);
   assert.equal(count(/class="dot( on)?"/), 2);
   setHeight(222);
   await press('goStudy'); await press('goLibrary');
@@ -335,7 +337,7 @@ test('страницы вместо прокрутки: число элемен�
   await press('toggleLayout');                                   // сетка: 2 колонки
   setHeight(300);
   await press('goStudy'); await press('goLibrary');
-  assert.equal(state.pager.per, 4);                              // 2 ряда × 2 колонки
+  assert.deepEqual(state.pager.starts, [0, 4, 8]);               // 2 ряда × 2 колонки
   assert.equal(count(/class="gtile"/), 4);
   await press('toggleLayout');
 });
@@ -385,8 +387,8 @@ test('настройки: пять страниц, тема/шрифт/аним�
   for (const t of ['Тема', 'AMOLED', 'Вибрация', 'Что показывать первым', 'Проверка', 'Автоозвучка', 'Новых карточек в день', 'Карточек за сессию', 'Импорт', 'Экспорт', 'Сбросить прогресс', 'Резервная копия']) assert.match(all, new RegExp(t));
   assert.doesNotMatch(all, /Вид библиотеки|Порядок карточек/);   // есть на основных экранах
   assert.equal(count(/class="dtab/, page()), 5);
-  assert.match(app.innerHTML, /data-act="back"/);
-  assert.doesNotMatch(app.innerHTML, /<header>.*data-act="goSettings"/);
+  assert.match(app.innerHTML, /class="tab on" data-act="goSettings"/);   // вкладка «Настройки» подсвечена, шапка без «назад»
+  assert.doesNotMatch(app.innerHTML, /<header>(?:(?!<\/header>)[\s\S])*data-act="goSettings"/);
   for (const [key, v] of [['theme', 'dark'], ['font', 'l'], ['anim', 'off'], ['layout', 'grid'], ['check', 'choice']]) await press('setPref', { key, v });
   assert.deepEqual([document.documentElement.dataset.theme, document.documentElement.dataset.font, document.documentElement.dataset.anim], ['dark', 'l', 'off']);
   Object.assign(state.prefs, { theme: 'auto', font: 'm', anim: 'on', layout: 'list', check: 'flip' });
@@ -422,7 +424,7 @@ test('CRUD проект: создать, дубликат, изменить, у�
   await press('newProject');
   assert.match(page(), /Новый проект/);
   assert.match(page(), /<datalist id="tts-codes">/);
-  assert.doesNotMatch(app.innerHTML, /<header>.*data-act="goSettings"/);
+  assert.doesNotMatch(app.innerHTML, /<header>(?:(?!<\/header>)[\s\S])*data-act="goSettings"/);
   setFields({ name: 'Даты', tts: 'ru-RU' });
   await press('saveProject');
   assert.equal(state.nav.v, 'library');
@@ -575,17 +577,17 @@ test('свайп, начатый на кнопке свободной облас
   await press('goStudy');
   const onButton = { closest: sel => (sel === '.view' ? {} : null) };      // кнопка-плитка не блокирует жест
   await drag(onButton, 300, 40);
-  assert.equal(state.nav.v, 'settings');
+  assert.equal(state.nav.v, 'stats');
   await press('startStudy', { mode: 'srs', scope: 'all' });                                // «клик» после жеста погашен
-  assert.equal(state.nav.v, 'settings');
+  assert.equal(state.nav.v, 'stats');
   await press('goStudy');
 });
 
 test('жесты по свободной области: листают страницы и экраны; в сессии и формах отключены', async () => {
   setHeight(2000);
   await press('goStudy');
-  await drag(areaTarget, 250, 60);                               // «Учёба» — одна страница: влево → настройки
-  assert.equal(state.nav.v, 'settings');
+  await drag(areaTarget, 250, 60);                               // «Учёба» — одна страница: влево → «Статистика»
+  assert.equal(state.nav.v, 'stats');
   await drag(areaTarget, 60, 250);                               // вправо → обратно в «Учёбу»
   assert.equal(state.nav.v, 'study');
   await drag(areaTarget, 60, 250);                               // вправо → библиотека
@@ -687,7 +689,19 @@ test('статистика: пять страниц, всё из истории 
   assert.equal(count(/class="dtab/, page()), 5);
   const all = state.pager.items.join('');
   for (const t of ['Обзор', 'сегодня', '7 дней', '30 дней', 'всего', 'удержание', 'лучшая серия', 'выучено', 'Повторений по дням', 'Оценки за 30 дней', 'Снова', 'на слух', 'с подсказкой', 'вспоминание', 'Колоды', 'Basics', 'Чаще всего', 'Придёт на повторение', 'Речь', 'попыток', 'средняя оценка', 'Попыток по дням']) assert.match(all, new RegExp(t));
-  assert.match(app.innerHTML, /data-act="back"/);
-  await press('back');
+  assert.match(app.innerHTML, /class="tab on" data-act="goStats"/);
+  await press('goStudy');
   assert.equal(state.nav.v, 'study');
+});
+
+test('текст целиком: названия и подписи переносятся, не обрезаются (нет многоточия и nowrap в списках)', async () => {
+  const css = (await import('node:fs')).readFileSync('www/css/style.css', 'utf8');
+  for (const sel of ['.item .t', '.item .t small', '.item .tn', '.gtile .gt', '.gtile small', '.sitem b', '.sitem small', 'header h1', '.counter .ctx', '.sub']) {
+    const rule = css.split('\n').find(l => l.startsWith(`${sel}{`));
+    assert.ok(rule, `нет правила ${sel}`);
+    assert.doesNotMatch(rule, /text-overflow|nowrap|overflow:hidden/, sel);
+    assert.match(rule, /overflow-wrap:(anywhere|break-word)/, sel);
+  }
+  assert.match(css, /\.item\{[^}]*min-height:64px/);                 // строка растёт вместе с текстом
+  assert.match(css, /\.gtile\{[^}]*min-height:124px/);
 });

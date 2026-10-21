@@ -26,7 +26,7 @@ export default async function sessionView() {
   const s = state.session, card = currentCard(s);
   const undo = s.undo ? button({ act: 'undo', cls: 'sm', label: '↶', aria: 'Отменить последнюю оценку' }) : '';
   const dirBtn = s.mode !== 'srs' && s.mode !== 'cards' ? '' : button({ act: 'toggleDir', cls: 'sm', label: DIR_LABELS[state.prefs.dir][1] });
-  const head = header(MODE_SHORT[s.mode], { left: backButton('back'), gear: false, right: undo + dirBtn });
+  const head = header(MODE_SHORT[s.mode], { left: backButton('back'), right: undo + dirBtn });
   if (!card) return head + studyFinishedView(s);
   const dir = cardDir(s, card);
   if (state.quiz?.id !== card.id) state.quiz = s.mode === 'speak' ? null : makeQuiz(s, card, dir, state.prefs.check);

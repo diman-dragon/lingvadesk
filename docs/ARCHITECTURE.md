@@ -54,6 +54,11 @@
 - **Импорт** (`deckio/*`): `readImportFile` (определяет по сигнатуре zip / по тексту) → `readImportText` (наш JSON → `parseImport`; чужой JSON → `parseJsonCards`; таблица → `parseTextRows` → `rowsToCards`) или `readZip`
   (`unzip` + `parseXlsx`; `.apkg` — коллекция уходит в плагин `anki/AnkiNotesPlugin`, потому что в JS нет SQLite). Экран «Импорт» — `views/importFormView`, `actions/confirmImport`.
 
+## Страницы, вкладки, распознавание речи
+- Нижняя панель — четыре вкладки (`constants/TABS`, `TAB_OF`); кольцо свайпов — `constants/RING`. Шапка (`components/header`) без служебных кнопок.
+- Список делится на страницы по **реальной высоте** элементов (`pager/measureStarts` → `pager/pageStarts`; запасной вариант без измерений — `pager/uniformStarts`). Текст везде переносится (`overflow-wrap:anywhere`), строки растут (`min-height`).
+- Распознавание: `SpeechListener` повторяет попытку онлайн при кодах 12 / 13; `study/prepareSpeech` + `SpeechSupport` проверяют и скачивают офлайн-пакет языка (Android 13+).
+
 ## Жесты и `touch-action`
 Все свайпы — Pointer Events (`gestures/`). Чтобы WebView не отнимал жест (`pointercancel`), `touch-action: none` задан на `.view`,
 на всех её потомках и на каждом прокручиваемом контейнере внутри (`.face`, `.pager`): Chromium считает эффективное

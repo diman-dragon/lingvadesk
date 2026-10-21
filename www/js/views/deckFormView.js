@@ -10,7 +10,7 @@ export default async function deckFormView() {
   const id = state.nav.id;
   const [deck, projects] = await Promise.all([id ? getDeckWithProject(id) : null, listProjects()]);
   const projectId = deck ? deck.language_id : state.nav.projectId;
-  return header(id ? 'Колода' : 'Новая колода', { left: backButton('back'), gear: false }) +
+  return header(id ? 'Колода' : 'Новая колода', { left: backButton('back') }) +
     labeledField({ id: 'name', label: 'Название', value: deck?.name ?? '', placeholder: 'Например, Договоры' }) +
     selectField({ id: 'project', label: 'Проект', options: projects.map(c => [c.id, c.name]), value: projectId }) +
     formButtons({ save: 'saveDeck', del: id ? 'delDeck' : '' });

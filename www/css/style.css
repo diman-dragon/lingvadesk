@@ -14,10 +14,10 @@ body{background:var(--bg);color:var(--text);font:16px/1.4 system-ui,-apple-syste
 .view.form{overflow-y:auto;scrollbar-width:none;touch-action:pan-y}
 .view.form::-webkit-scrollbar{display:none}
 .muted{color:var(--muted)}
-.sub{color:var(--muted);font-size:13px;margin:-8px 0 8px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub{color:var(--muted);font-size:13px;margin:-8px 0 8px 2px;overflow-wrap:anywhere}
 h3{margin:0 0 8px 2px;font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
 header{display:flex;align-items:center;gap:8px;margin:2px 0 12px;min-height:42px;flex:none}
-header h1{flex:1;min-width:0;margin:0;font-size:24px;font-weight:750;letter-spacing:-.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+header h1{flex:1;min-width:0;margin:0;font-size:24px;font-weight:750;letter-spacing:-.02em;line-height:1.15;overflow-wrap:anywhere}
 
 /* ===== Кнопки и поля ===== */
 button{font:inherit;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 16px;transition:transform .12s,background .2s,box-shadow .2s}
@@ -55,13 +55,13 @@ summary::-webkit-details-marker{display:none}
 .view.slide-prev{animation:pagePrev .28s cubic-bezier(.2,.8,.2,1)}
 
 /* ===== Списки: фиксированная высота элементов (должна совпадать с constants/PAGER) ===== */
-.item{display:flex;align-items:center;gap:12px;height:64px;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:0 14px;box-shadow:var(--shadow);transition:transform .12s;overflow:hidden}
+.item{display:flex;align-items:center;gap:12px;min-height:64px;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:8px 14px;box-shadow:var(--shadow);transition:transform .12s}
 .item:active{transform:scale(.98)}
-.item .t{flex:1;min-width:0;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.item .t small{display:block;font-weight:400;color:var(--muted);overflow:hidden;text-overflow:ellipsis}
+.item .t{flex:1;min-width:0;font-weight:650;overflow-wrap:break-word}
+.item .t small{display:block;font-weight:400;color:var(--muted);overflow-wrap:anywhere}
 .avatar{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;color:#fff;font-weight:750;font-size:18px;flex:none}
-.item .tl{display:flex;align-items:center;gap:8px;min-width:0}
-.item .tn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .tl{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;min-width:0}
+.item .tn{min-width:0;max-width:100%;overflow-wrap:break-word}
 .item .tl .mark{flex:none}
 .acts{display:flex;gap:0;flex:none;align-items:center}
 button.ib{width:36px;height:36px;padding:0;border:0;border-radius:12px;background:transparent;box-shadow:none;color:var(--muted);display:grid;place-items:center}
@@ -76,11 +76,11 @@ button.ib[data-act^="del"]{color:var(--again)}
 .gtile .mark{margin-top:2px}
 .badge{background:var(--accent);color:var(--accent-t);border-radius:999px;padding:2px 10px;font-size:13px;font-weight:750;flex:none}
 .chev{color:var(--muted);font-size:24px;line-height:1}
-.gtile{position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:4px;height:124px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:12px 14px;box-shadow:var(--shadow);transition:transform .12s;overflow:hidden}
+.gtile{position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:4px;min-height:124px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:12px 14px;box-shadow:var(--shadow);transition:transform .12s;overflow:hidden}
 .gtile:active{transform:scale(.97)}
 .gtile .avatar{width:44px;height:44px;border-radius:14px;margin-bottom:2px}
-.gtile .gt{font-weight:700;line-height:1.2;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.gtile small{color:var(--muted);line-height:1.25;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.gtile .gt{font-weight:700;line-height:1.2;max-width:100%;overflow-wrap:anywhere}
+.gtile small{color:var(--muted);line-height:1.25;max-width:100%;overflow-wrap:anywhere}
 .gtile .badge{position:absolute;top:10px;right:10px}
 .gtile.mini{background:linear-gradient(160deg,var(--surface),var(--surface2))}
 .gtile.mini .gt{font-size:17px}
@@ -139,7 +139,7 @@ select{appearance:none;-webkit-appearance:none;background-image:linear-gradient(
 
 /* ===== Сессия учёбы: карточка занимает всё свободное место ===== */
 .counter{flex:none;display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--muted);margin-bottom:5px}
-.counter .ctx{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+.counter .ctx{overflow-wrap:anywhere;text-align:right}
 .prog{flex:none;height:7px;background:var(--surface2);border-radius:99px;overflow:hidden;margin-bottom:10px}
 .prog>i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px;transition:width .4s}
 .face{background:var(--surface);border:1px solid var(--border);border-radius:26px;padding:18px;text-align:center;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;box-shadow:var(--shadow)}
@@ -213,8 +213,8 @@ input.ans{margin:0 0 8px;font-size:17px;text-align:center}
 .view:not(.form) .sheet-list,.view:not(.form) .sheet-list *{touch-action:pan-y}
 button.sitem{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 12px;margin-bottom:6px;border-radius:14px}
 .sitem .st{flex:1;min-width:0}
-.sitem b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sitem small{display:block;color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sitem b{display:block;overflow-wrap:anywhere}
+.sitem small{display:block;color:var(--muted);font-size:12px;overflow-wrap:anywhere}
 button.sheet-close{width:100%;margin-top:6px}
 
 /* ===== Произношение ===== */

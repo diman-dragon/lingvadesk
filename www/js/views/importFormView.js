@@ -10,7 +10,7 @@ import selectField from '../components/selectField.js';
 import formButtons from '../components/formButtons.js';
 /** «Импорт» не нашего JSON: пока ничего не разобрано — вставка текста или выбор файла; потом — сводка, проект и колода. */
 export default async function importFormView() {
-  const d = state.importDraft, head = header('Импорт', { left: backButton('back'), gear: false });
+  const d = state.importDraft, head = header('Импорт', { left: backButton('back') });
   if (!d) {
     return head + '<label class="field"><span>Вставьте список («слово — перевод»), CSV, TSV или экспорт Anki / Quizlet</span>' +
       '<textarea id="paste" rows="9" placeholder="apple — яблоко&#10;dog — собака"></textarea></label>' +

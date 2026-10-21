@@ -19,7 +19,7 @@ const result = async g => {
 /** «Блиц»: таймер, жизни, очки с комбо, вопрос и 4 варианта. */
 export default async function gameView() {
   const g = state.game, left = Math.max(0, g.endsAt - Date.now());
-  const head = header('Игра', { left: backButton('back'), gear: false });
+  const head = header('Игра', { left: backButton('back') });
   if (g.over) return head + await result(g);
   const q = g.q, hearts = '❤️'.repeat(g.lives) + '🖤'.repeat(GAME.lives - g.lives);
   const opts = q.options.map((t, i) => button({ act: 'gamePick', cls: `opt${mark(q, i)}`, label: esc(t), data: { i } })).join('');

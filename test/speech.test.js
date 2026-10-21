@@ -74,8 +74,13 @@ test('нативная часть: плагин, разрешение, запр�
   const read = f => readFileSync(f, 'utf8');
   assert.match(read(`${J}/speech/SpeechListenPlugin.java`), /RECORD_AUDIO/);
   assert.match(read(`${J}/speech/SpeechListenPlugin.java`), /requestPermissionForAlias/);
-  assert.match(read(`${J}/speech/SpeechIntent.java`), /EXTRA_PREFER_OFFLINE, true/);
+  assert.match(read(`${J}/speech/SpeechIntent.java`), /EXTRA_PREFER_OFFLINE, offline/);
   assert.match(read(`${J}/speech/SpeechResult.java`), /"audio", JSObject\.NULL/);    // записи не сохраняются
+  assert.match(read(`${J}/speech/SpeechListener.java`), /offline && \(error == 12 \|\| error == 13\)\) SpeechStart\.run\(activity, call, false\)/);   // код 13: повтор онлайн
+  assert.match(read(`${J}/speech/SpeechErrors.java`), /e == 12 \|\| e == 13/);
+  assert.match(read(`${J}/speech/SpeechSupport.java`), /checkRecognitionSupport/);
+  assert.match(read(`${J}/speech/SpeechSupport.java`), /triggerModelDownload/);
+  assert.match(read(`${J}/speech/SpeechListenPlugin.java`), /"download"\.equals\(action\)/);
   assert.match(read(`${J}/PluginList.java`), /SpeechListenPlugin\.class/);
   const m = read('android/app/src/main/AndroidManifest.xml');
   assert.match(m, /android\.permission\.RECORD_AUDIO/);

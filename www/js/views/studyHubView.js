@@ -20,7 +20,7 @@ const sum = (list, f) => list.reduce((a, x) => a + f(x), 0);
  */
 export default async function studyHubView() {
   const [decks, lim, today, best] = await Promise.all([listDeckStats(), loadLimits(), loadToday(), bestScore()]);
-  const top = header('Давай-ка поучим…', { right: button({ act: 'goStats', cls: 'sm', label: '📊', aria: 'Статистика' }) });
+  const top = header('Давай-ка поучим…');
   const total = sum(decks, d => Number(d.total));
   if (!total) {
     return top + emptyState({ icon: '🃏', title: 'Здесь пока нет карточек', text: 'Добавьте карточки в библиотеке.', actions: row(button({ act: 'goLibrary', cls: 'p', label: 'В библиотеку' })) });

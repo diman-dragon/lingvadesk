@@ -9,7 +9,7 @@ import formButtons from '../components/formButtons.js';
 export default async function projectFormView() {
   const id = state.nav.id;
   const c = id ? await getProject(id) : { name: '', tts: DEFAULT_TTS };
-  return header(id ? 'Проект' : 'Новый проект', { left: backButton('back'), gear: false }) +
+  return header(id ? 'Проект' : 'Новый проект', { left: backButton('back') }) +
     labeledField({ id: 'name', label: 'Название', value: c.name, placeholder: 'Например, Юридический английский' }) +
     labeledField({ id: 'tts', label: 'Язык озвучки', value: c.tts, placeholder: 'en-US', list: 'tts-codes' }) + ttsCodes() +
     formButtons({ save: 'saveProject', del: id ? 'delProject' : '' });
