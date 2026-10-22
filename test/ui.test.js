@@ -820,16 +820,27 @@ test('текст помещается: автоподгонка карточки
   assert.ok(faces[1].st['--fit'] < 1 && faces[1].st['--fit'] >= 0.5);   // уменьшено ровно до того, как поместилось
   assert.equal(faces[2].st['--fit'], FIT_MIN);                      // предел: не мельче FIT_MIN
   const optGrid = await imp('components/optGrid.js');
-  assert.match(optGrid(['да', 'нет'], 'pick'), /class="opts"/);
-  assert.match(optGrid(['да', 'Очень длинный перевод в несколько слов'], 'pick'), /class="opts one"/);   // длинные — в один столбец
-  assert.match(optGrid(['а'.repeat(61)], 'pick'), /class="opt long"/);                                    // очень длинные — мельче
+  assert.match(optGrid(['а', 'б', 'в', 'г'], 'pick'), /class="opts"/);
+  const same = optGrid(['да', 'Очень длинный перевод в несколько слов', 'а'.repeat(80), 'г'], 'pick');
+  assert.match(same, /class="opts"/);                                // поведение одно: длинные не переходят в один столбец
+  assert.doesNotMatch(same, /opts one|opt long/);
+  assert.match(optGrid(['да', 'нет'], 'pick'), /class="opts r1"/);   // два варианта — один ряд той же сетки
+  const fitO = await imp('dom/fitOpts.js');
+  const mkOpt = need => { const o = { st: {}, clientHeight: 40, scrollWidth: 0, clientWidth: 100, style: { removeProperty: k => { delete o.st[k]; }, setProperty: (k, v) => { o.st[k] = v; } } };
+    Object.defineProperty(o, 'scrollHeight', { get: () => need(o.st['--fit'] ?? 1) }); return o; };
+  const o1 = mkOpt(() => 30), o2 = mkOpt(k => 80 * k), box = { children: [o1, o2] };
+  const prevQ = doc.querySelectorAll;
+  doc.querySelectorAll = sel => (sel === '.opts' ? [box] : []);
+  try { fitO(); } finally { doc.querySelectorAll = prevQ; }
+  assert.equal(o1.st['--fit'], undefined);                           // короткий вариант остаётся крупным
+  assert.ok(o2.st['--fit'] < 1 && o2.st['--fit'] >= 0.5);            // длинный уменьшен ровно до того, как поместился
   const header = await imp('components/header.js');
   assert.match(header('Коротко'), /<h1>/);
   assert.match(header('Название подлиннее обычного, ещё длиннее'), /<h1 class="long">/);
   assert.match(header('x'.repeat(61)), /<h1 class="xlong">/);
   const css = (await import('node:fs')).readFileSync('www/css/style.css', 'utf8');
   assert.match(css, /\.page\{[^}]*minmax\(0,1fr\)/);                // длинное слово не раздвигает колонку списка
-  assert.match(css, /\.opts\{[^}]*max-height/);                      // варианты прокручиваются внутри, а не вытесняют карточку
+  assert.match(css, /\.opts\{[^}]*height:min\(28dvh/);                   // высота вариантов фиксирована, текст подгоняется
   assert.match(css, /\.flip\{[^}]*min-height:150px/);                 // карточка не схлопывается
 });
 

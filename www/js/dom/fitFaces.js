@@ -1,11 +1,14 @@
 import { FIT_MIN } from '../constants/FIT_MIN.js';
+import fitOpts from './fitOpts.js';
 /**
  * Подгоняет текст под доступное место, ничего не обрезая:
  * — карточка (.face): пока содержимое не помещается, масштаб --fit уменьшается шагами по 5 % (текст, пояснения, кнопка озвучки);
  * — страница списка (.page), если один элемент выше области (огромный текст), масштабируется целиком (zoom).
+ * Заодно подгоняет варианты ответа (dom/fitOpts).
  * Вызывается после отрисовки и когда содержимое меняется.
  */
 export default function fitFaces() {
+  fitOpts();
   for (const face of document.querySelectorAll?.('.face') ?? []) {
     let k = 1;
     face.style.removeProperty('--fit');

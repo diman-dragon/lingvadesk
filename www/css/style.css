@@ -179,12 +179,10 @@ button.speak:active{transform:scale(.9)}
 @keyframes wave{0%,100%{opacity:.2}50%{opacity:1}}
 
 /* ===== Вопросы с выбором и вводом, подсказка-пример, итог сессии, статистика ===== */
-.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 8px;flex:0 1 auto;min-height:88px;max-height:min(28dvh,190px);overflow-y:auto;scrollbar-width:none}
-.opts::-webkit-scrollbar{display:none}
-.opts.one{grid-template-columns:minmax(0,1fr)}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(0,1fr);gap:8px;margin:0 0 8px;flex:none;height:min(28dvh,190px);overflow:hidden}
+.opts.r1{height:min(14dvh,92px)}
 .view:not(.form) .opts,.view:not(.form) .opts *{touch-action:pan-y}
-button.opt.long{font-size:13px}
-button.opt{padding:10px 8px;font-size:15px;line-height:1.2;min-height:48px;overflow-wrap:anywhere;border-width:1.5px}
+button.opt{box-sizing:border-box;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:calc(8px*var(--fit,1)) calc(8px*var(--fit,1));font-size:calc(15px*var(--fs,1)*var(--fit,1));line-height:1.15;overflow:hidden;overflow-wrap:anywhere;border-width:1.5px}
 button.opt.ok{border-color:var(--good);color:var(--good);font-weight:700}
 button.opt.bad{border-color:var(--again);color:var(--again)}
 input.ans{margin:0 0 8px;font-size:17px;text-align:center}
@@ -272,7 +270,7 @@ button.speak.mic.rec{animation:recPulse 1s ease-in-out infinite;background:linea
 
 /* ===== Совсем низкие экраны (≤ 600px) ===== */
 @media (max-height:600px){
-  .opts{max-height:min(24dvh,140px)}.flip{min-height:130px}
+  .opts{height:min(24dvh,140px)}.opts.r1{height:min(12dvh,70px)}.flip{min-height:130px}
   header{min-height:36px;margin-bottom:6px}header h1{font-size:21px}button.icon{width:36px;height:36px;font-size:18px}
   .stat{padding:6px 4px}.stat b{font-size:20px}.order>span{margin-bottom:3px}
   .setting{padding:6px 0}.s-title{margin-bottom:4px}.seg button{padding:6px 4px;font-size:13px}.group{padding:0 12px}

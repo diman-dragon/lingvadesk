@@ -1,6 +1,6 @@
 # Карта проекта LingvaDesk (читать ПЕРВОЙ — вместо чтения всего кода)
 
-> Версия 1.9.4 · Capacitor 6.2.0 (Android) · JS без сборки (ES-модули) в `www/`, Java-плагины в `android/`.
+> Версия 1.9.5 · Capacitor 6.2.0 (Android) · JS без сборки (ES-модули) в `www/`, Java-плагины в `android/`.
 > Правило кода: **один файл — одна функция** (≤45 строк JS), слои вниз: `actions → study/deckio/backup → repo → native → Java`; `views → components`.
 > Обновляй эту карту при каждом изменении структуры (и поднимай версию — см. «Релиз»).
 
@@ -26,7 +26,7 @@
 | Нижние окна (sheet) | `components/sheetShell` (общая оболочка), `statSheet` (параметр статистики); открыто окно статистики — `state.sheet = 'stat:<n>'`, закрывает `closeSheet`/«Назад» |
 | Сводка на карточке учёбы | `components/studyInfo` (всего · изучено · сегодня + красный «?»), `study/loadLevel` + `constants/LOAD_STEPS` (4 градации, CSS `.today.lv0…lv3`), данные — `repo/listDeckStats` (`total fresh due late mature`) |
 | Порядок карточек | `study/buildOrder` — всегда случайный (`util/shuffle`, затем устойчивая сортировка по сроку / давности) |
-| Текст помещается | `dom/fitFaces` (авто-масштаб `--fit` у `.face`, `zoom` у страницы списка; вызывается из `nav/render`, `pager/layoutPager`, `finishQuiz`, `showText`, `record`), `components/optGrid` (варианты ответа: `.one`, `.long`, прокрутка), `components/header` (`long`/`xlong`), CSS `.page` с `minmax(0,1fr)`; **проверка в браузере — `tools/qa-layout/`** (после правок CSS/вёрстки запускать) |
+| Текст помещается | `dom/fitFaces` (авто-масштаб `--fit` у `.face`, `zoom` у страницы списка; вызывается из `nav/render`, `pager/layoutPager`, `finishQuiz`, `showText`, `record`), `dom/fitOpts` + `components/optGrid` (варианты ответа: всегда сетка 2×2, текст уменьшается, без прокрутки), `components/header` (`long`/`xlong`), CSS `.page` с `minmax(0,1fr)`; **проверка в браузере — `tools/qa-layout/`** (после правок CSS/вёрстки запускать) |
 | Тап по кнопке / свайп | `gestures/*`: метка `swipe.suppress` (время) гасит клик только `SWIPE.suppressMs` после жеста — иначе съедала следующее нажатие |
 | Импорт/экспорт | `deckio/*` (`readImportFile` → `readImportText`/`readZip` → `saveLibrary`; `exportLibraryToFile`), `views/importFormView`, `actions/{confirmImport,importLibrary,importPaste,exportLibrary}` |
 | Бэкап | `backup/*`, `native/backup*`, Java `backup/*` (`.fcbak` = ZIP {manifest, app.db}) |
@@ -74,6 +74,7 @@
 `docs/ARCHITECTURE.md` (подробно по экранам/учёбе/жестам) · `CONVENTIONS.md` · `FORMATS.md` (форматы файлов) · `UPDATES.md` · `DECISIONS.md` (слияние с LingoCards) · `CHANGELOG.md` (история по версиям).
 
 ## 9. Недавние изменения
+- **1.9.5** — варианты ответа («На слух», игра): всегда сетка 2×2 фиксированной высоты, без столбца и прокрутки; текст каждого варианта уменьшается, если большой (`dom/fitOpts`, `components/optGrid`).
 - **1.9.4** — убраны «Все колоды»/«Весь проект»; проверка вёрстки в Chromium (`tools/qa-layout`) и исправления: варианты ответа в «На слух»/игре не сжимают карточку, автоподгонка текста, длинные слова/заголовки.
 - **1.9.3** (вместо нереализованной 1.10.0) — тап по режиму в «Учёбе» открывает экран области режима: «Все колоды» + проекты → колоды проекта; список/сетка с информацией; `deckSheet`/`openSheet` удалены.
 - **1.9.1** — «На слух»: всегда выбор из 4 переводов (`study/makeQuiz`: для `listen` принудительно `choice` + направление `fwd`; лицо — `views/listenFace`, кнопки — `views/quizControls`, ответ — `actions/pick` → `study/finishQuiz`).
