@@ -68,5 +68,5 @@ test('экран не гаснет и вибрация: плагин зарег�
   assert.match(readFileSync('android/app/src/main/java/com/example/lingocards/PluginList.java', 'utf8'), /KeepAwakePlugin\.class/);
   assert.match(readFileSync('android/app/src/main/AndroidManifest.xml', 'utf8'), /android\.permission\.VIBRATE/);
   assert.match(readFileSync('android/app/src/main/java/com/example/lingocards/screen/KeepAwakePlugin.java', 'utf8'), /FLAG_KEEP_SCREEN_ON/);
-  assert.match(readFileSync('android/app/src/main/java/com/example/lingocards/tts/TtsSay.java', 'utf8'), /Thread\.sleep/);   // ждём запуска движка
+  assert.match(readFileSync('android/app/src/main/java/com/example/lingocards/tts/TtsReady.java', 'utf8'), /Thread\.sleep/);   // ждём запуска движка
 });

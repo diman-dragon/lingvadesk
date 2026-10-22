@@ -8,8 +8,9 @@ import prefControl from '../components/prefControl.js';
 import settingRow from '../components/settingRow.js';
 import settingsGroup from '../components/settingsGroup.js';
 import row from '../components/row.js';
+import voicePage from './voicePage.js';
 /**
- * Настройки — пять страниц (листаются по кругу), каждая помещается в экран. Вид библиотеки (список / сетка) и порядок карточек —
+ * Настройки — шесть страниц (листаются по кругу), каждая помещается в экран. Вид библиотеки (список / сетка) и порядок карточек —
  * не здесь: они переключаются на самих экранах («Библиотека», «Учёба»). Импорт и экспорт библиотеки — на странице «Данные».
  */
 export default async function settingsView() {
@@ -26,7 +27,7 @@ export default async function settingsView() {
       'Перед восстановлением текущая БД сохраняется в защитную копию') +
     settingRow('Прогресс', button({ act: 'resetProgress', cls: 'd', label: 'Сбросить прогресс обучения' }), 'Карточки и колоды останутся; история повторений очистится');
   const about = settingRow(APP_NAME, `<div class="about"><span class="brand">${logoMark()}</span><div class="muted">Версия ${APP_VERSION}<br>Офлайн-карточки<br>© DataLaw</div></div>`);
-  const pages = [['Вид', look], ['Учёба', study], ['Лимиты', limits], ['Данные', data], ['О нас', about]];
+  const pages = [['Вид', look], ['Учёба', study], ['Голос', await voicePage()], ['Лимиты', limits], ['Данные', data], ['О нас', about]];
   return header('Настройки') +
     pagedList(pages.map(([title, rows]) => settingsGroup(title, rows)), { fixed: true, titles: pages.map(p => p[0]) });
 }

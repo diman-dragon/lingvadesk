@@ -1,6 +1,6 @@
 # Карта проекта LingvaDesk (читать ПЕРВОЙ — вместо чтения всего кода)
 
-> Версия 1.9.6 · Capacitor 6.2.0 (Android) · JS без сборки (ES-модули) в `www/`, Java-плагины в `android/`.
+> Версия 2.0.0 · Capacitor 6.2.0 (Android) · JS без сборки (ES-модули) в `www/`, Java-плагины в `android/`.
 > Правило кода: **один файл — одна функция** (≤45 строк JS), слои вниз: `actions → study/deckio/backup → repo → native → Java`; `views → components`.
 > Обновляй эту карту при каждом изменении структуры (и поднимай версию — см. «Релиз»).
 
@@ -32,7 +32,7 @@
 | Бэкап | `backup/*`, `native/backup*`, Java `backup/*` (`.fcbak` = ZIP {manifest, app.db}) |
 | Настройки | `views/settingsView`, `settings/*`, `constants/{DEFAULT_PREFS,PREF_OPTIONS}`, `actions/setPref` |
 | Стили | один файл `www/css/style.css` (темы, `.item`, `.gtile`, `.sheet`, низкие экраны ≤700/≤600px) |
-| Озвучка | `native/ttsSpeak`, `study/autoSpeak`, Java `tts/*`, коды языков `constants/TTS_CODES` |
+| Озвучка | `tts/speakText` (голос слота, скорость, высота) → `native/ttsSpeak`, `study/autoSpeak`, Java `tts/*`, коды языков `constants/TTS_CODES`; выбор голоса — `views/voicePage`, `components/voiceRow`, `tts/{resolveVoice,voicesFor,voiceLabel,loadVoiceList}`, `settings/loadVoices`, `constants/SPEAKERS` |
 | Значок приложения | Java `icon/*`, JS `study/syncIcon`, `study/markStudied` |
 
 ## 3. Экраны (`state.nav.v`) → файл → вкладка
@@ -50,7 +50,7 @@
 | `game` | gameView | Учёба | «Блиц» 60 с |
 | `quest` | questView | Учёба | «Квест»: маршрут этапов, 3 жизни, выбор / ввод |
 | `stats` | statsView | Статистика | 12 параметров списком/сеткой, тап → подробное окно (`state.sheet='stat:<n>'`) |
-| `settings` | settingsView | Настройки | 4 страницы: Вид · Учёба · Данные · О нас |
+| `settings` | settingsView | Настройки | 6 страниц: Вид · Учёба · Голос · Лимиты · Данные · О нас |
 
 Кольцо свайпов: library → study → stats → settings → library. «Назад» — свой стек `state.stack` (`nav/go` кладёт, `nav/popBack` снимает; Android → событие `lingvaBack` → `nav/systemBack`).
 
@@ -76,8 +76,9 @@
 `docs/ARCHITECTURE.md` (подробно по экранам/учёбе/жестам) · `CONVENTIONS.md` · `FORMATS.md` (форматы файлов) · `UPDATES.md` · `DECISIONS.md` (слияние с LingoCards) · `CHANGELOG.md` (история по версиям).
 
 ## 9. Недавние изменения
-- **1.9.6** — игры в одной категории «Игры» (`views/gamesView`, `components/gameEntry`, `constants/GAMES`, `actions/openGameKind`; режим `game` на хабе → экран `games` → `studyDecks` с `mode: blitz|quest`) и новая игра «Квест» (`game/*Quest`, `views/quest*`, `constants/QUEST`, `state.quest`; рекорд — `bestScore('quest')`, префикс `quest:` в `games.scope`).
-- **1.9.6** — варианты ответа («На слух», игра): всегда сетка 2×2 фиксированной высоты, без столбца и прокрутки; текст каждого варианта уменьшается, если большой (`dom/fitOpts`, `components/optGrid`).
+- **2.0.0** — голоса озвучки: страница настроек «Голос» (`views/voicePage`, `components/voiceRow`, `tts/*`, `actions/{setVoice,testVoice,refreshVoices}`), Java `TtsVoices` + голос/скорость/высота в `TtsSay`; выбор хранится как `voice:<язык>:<слот>` в `settings` (`state.voices`), слоты — `constants/SPEAKERS` (база под диалоги); `speakText(text, lang, slot)`.
+- **2.0.0** — игры в одной категории «Игры» (`views/gamesView`, `components/gameEntry`, `constants/GAMES`, `actions/openGameKind`; режим `game` на хабе → экран `games` → `studyDecks` с `mode: blitz|quest`) и новая игра «Квест» (`game/*Quest`, `views/quest*`, `constants/QUEST`, `state.quest`; рекорд — `bestScore('quest')`, префикс `quest:` в `games.scope`).
+- **2.0.0** — варианты ответа («На слух», игра): всегда сетка 2×2 фиксированной высоты, без столбца и прокрутки; текст каждого варианта уменьшается, если большой (`dom/fitOpts`, `components/optGrid`).
 - **1.9.4** — убраны «Все колоды»/«Весь проект»; проверка вёрстки в Chromium (`tools/qa-layout`) и исправления: варианты ответа в «На слух»/игре не сжимают карточку, автоподгонка текста, длинные слова/заголовки.
 - **1.9.3** (вместо нереализованной 1.10.0) — тап по режиму в «Учёбе» открывает экран области режима: «Все колоды» + проекты → колоды проекта; список/сетка с информацией; `deckSheet`/`openSheet` удалены.
 - **1.9.1** — «На слух»: всегда выбор из 4 переводов (`study/makeQuiz`: для `listen` принудительно `choice` + направление `fwd`; лицо — `views/listenFace`, кнопки — `views/quizControls`, ответ — `actions/pick` → `study/finishQuiz`).

@@ -282,3 +282,6 @@ button.speak.mic.rec{animation:recPulse 1s ease-in-out infinite;background:linea
 /* ===== Жесты: touch-action нужно на КАЖДОМ прокручиваемом контейнере внутри (.face, .pager), иначе браузер отменяет жест ===== */
 html,body,#app,.view:not(.form),.view:not(.form) *{touch-action:none}
 .view.form,.view.form *{touch-action:pan-y}
+
+/* ===== Выбор голоса: список + «▶» в одну строку ===== */
+.vrow{align-items:center;flex-wrap:nowrap}.vrow select{margin:0;flex:1 1 auto;min-width:0}.vrow button.icon{flex:none}

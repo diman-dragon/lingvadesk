@@ -284,14 +284,14 @@ test('«На слух»: плеер вместо текста, «Показат�
   bridge.io.spoken = null;
   await press('startStudy', { mode: 'listen', scope: 'd:1' });
   assert.equal(state.session.mode, 'listen');
-  assert.deepEqual(bridge.io.spoken, { text: 'apple', lang: 'en-US' });   // слово звучит само при показе
+  assert.deepEqual(bridge.io.spoken, { text: 'apple', lang: 'en-US', voice: '', rate: 1, pitch: 1 });   // слово звучит само при показе
   assert.match(app.innerHTML, /button class="speak xl" data-act="play"/);
   assert.match(app.innerHTML, /class="big hidtext" hidden>apple/);          // текст спрятан
   assert.match(app.innerHTML, /Показать текст/);
   assert.doesNotMatch(app.innerHTML, /data-act="toggleDir"/);
   bridge.io.spoken = null;
   await press('play', { t: 'apple', lang: 'en-US' });
-  assert.deepEqual(bridge.io.spoken, { text: 'apple', lang: 'en-US' });
+  assert.deepEqual(bridge.io.spoken, { text: 'apple', lang: 'en-US', voice: '', rate: 1, pitch: 1 });
   assert.equal(track.plays, 1);
   await press('showText');
   assert.equal(track.hinted, true);
@@ -351,9 +351,9 @@ test('автоозвучка и озвучка по голосу проекта'
   await press('setPref', { key: 'autoplay', v: 'on' });
   await press('back');
   await press('startStudy', { mode: 'srs', scope: 'd:1' });
-  assert.deepEqual(bridge.io.spoken, { text: 'apple', lang: 'en-US' });
+  assert.deepEqual(bridge.io.spoken, { text: 'apple', lang: 'en-US', voice: '', rate: 1, pitch: 1 });
   await press('speak', { t: 'hello', lang: 'de-DE' });
-  assert.deepEqual(bridge.io.spoken, { text: 'hello', lang: 'de-DE' });
+  assert.deepEqual(bridge.io.spoken, { text: 'hello', lang: 'de-DE', voice: '', rate: 1, pitch: 1 });
   const icon = { classList: { add: c => icon.on = c, remove: () => {} } };
   await press('speak', { t: 'bye', lang: 'en-US' }, icon);        // волны на значке оживают на время озвучки
   assert.equal(icon.on, 'on');
@@ -451,7 +451,7 @@ test('свайпы по кругу: страницы → следующий эк
   await press('goLibrary');
   await swipeNavigate(-1);                                       // перед первой страницей — «Настройки»
   assert.equal(state.nav.v, 'settings');
-  assert.equal(state.page, 4);                                   // последняя из пяти страниц настроек
+  assert.equal(state.page, 5);                                   // последняя из шести страниц настроек
   assert.match(page(), /LingvaDesk/);
   assert.match(page(), new RegExp(`Версия ${APP_VERSION.replace(/\./g, '\\.')}`));
   assert.match(page(), /DataLaw/);
@@ -472,7 +472,7 @@ test('внутри проекта страницы листаются по кр�
   assert.equal(state.nav.v, 'project');
 });
 
-test('настройки: пять страниц, тема/шрифт/анимации/вибрация применяются и сохраняются', async () => {
+test('настройки: шесть страниц, тема/шрифт/анимации/вибрация применяются и сохраняются', async () => {
   setHeight(400);
   await press('goSettings');
   assert.equal(state.pager.fixed, true);
@@ -480,7 +480,7 @@ test('настройки: пять страниц, тема/шрифт/аним�
   const all = state.pager.items.join('');
   for (const t of ['Тема', 'AMOLED', 'Вибрация', 'Что показывать первым', 'Проверка', 'Автоозвучка', 'Новых карточек в день', 'Карточек за сессию', 'Импорт', 'Экспорт', 'Сбросить прогресс', 'Резервная копия']) assert.match(all, new RegExp(t));
   assert.doesNotMatch(all, /Вид библиотеки|Порядок карточек/);   // есть на основных экранах
-  assert.equal(count(/class="dtab/, page()), 5);
+  assert.equal(count(/class="dtab/, page()), 6);
   assert.match(app.innerHTML, /class="tab on" data-act="goSettings"/);   // вкладка «Настройки» подсвечена, шапка без «назад»
   assert.doesNotMatch(app.innerHTML, /<header>(?:(?!<\/header>)[\s\S])*data-act="goSettings"/);
   for (const [key, v] of [['theme', 'dark'], ['font', 'l'], ['anim', 'off'], ['layout', 'grid'], ['check', 'choice']]) await press('setPref', { key, v });

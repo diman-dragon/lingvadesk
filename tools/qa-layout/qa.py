@@ -73,6 +73,7 @@ def run(vw, vh, font, shots):
                 page.evaluate("async i => (await import('/js/actions/openStat.js')).default({id:i})", i); page.wait_for_timeout(250); chk(f'stat{i}-{lay}'); page.locator('button[data-act="closeSheet"]').click(timeout=3000); page.wait_for_timeout(200)
         act('toggleLayout')  # back to list
         act('goSettings'); pages('settings')
+        act('gotoPage', i=2); page.wait_for_timeout(300); chk('voice-page')
         # forms
         act('goLibrary'); act('newProject'); chk('projectForm'); act('back')
         act('goProject', id=1); act('newDeck'); chk('deckForm'); act('back')
