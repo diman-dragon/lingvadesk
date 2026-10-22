@@ -143,7 +143,7 @@ test('учёба: «Давай-ка поучим…» — режимы; нажа
   await press('goStudy');
   assert.equal(count(/class="tab on"/), 1);
   assert.match(page(), /Давай-ка поучим/);
-  for (const t of ['к повторению', 'новых', 'сегодня', 'дней подряд', 'Интервальное повторение', 'Карточки', 'На слух', 'Игра', 'Проверка произношения', 'По плану на сегодня: 8']) assert.match(page(), new RegExp(t));
+  for (const t of ['к повторению', 'новых', 'сегодня', 'дней подряд', 'Интервальное повторение', 'Карточки', 'На слух', 'Игры', 'Проверка произношения', 'По плану на сегодня: 8']) assert.match(page(), new RegExp(t));
   assert.doesNotMatch(page(), /Обучение|Случайная колода|Что учим|Порядок карточек/);
   assert.equal(count(/data-act="openMode"/), 5);
   assert.equal(count(/class="sinfo"/), 5);                      // на каждом режиме: всего · изучено · сегодня
@@ -854,4 +854,39 @@ test('текст целиком: названия и подписи перено
   }
   assert.match(css, /\.item\{[^}]*min-height:64px/);                 // строка растёт вместе с текстом
   assert.match(css, /\.gtile\{[^}]*min-height:124px/);
+});
+
+test('игры: категория «Игры» → Блиц и Квест → колода; квест проходится до итога', async () => {
+  bridge.reset();
+  bridge.io.picked = deckFile();
+  await press('importLibrary');
+  await press('goStudy');
+  await press('openMode', { id: 'game' });
+  assert.equal(state.nav.v, 'games');
+  assert.equal(count(/data-act="openGameKind"/), 2);
+  for (const t of ['Блиц', 'Квест', '🏆 0']) assert.match(page(), new RegExp(t));
+  await press('openGameKind', { id: 'quest' });
+  assert.equal([state.nav.v, state.nav.mode].join(), 'studyDecks,quest');
+  const pid = page().match(/data-act="openProjectDecks" data-id="(\d+)"/)[1];
+  await press('openProjectDecks', { id: pid });
+  await press('pickScope', { id: `d:${page().match(/data-id="d:(\d+)"/)[1]}` });
+  assert.equal(state.nav.v, 'quest', toastEl.textContent);
+  assert.match(page(), /Этап 1 \/ 8/);
+  for (let n = 0; n < 8; n++) {
+    const s = state.quest.stages[state.quest.i];
+    if (s.kind === 'choice') await press('questPick', { i: s.options.indexOf(s.answer) });
+    else { fields.ans = { value: s.answer }; await press('questCheck'); }
+    assert.match(page(), /✓ Верно/);
+    await press('questNext');
+  }
+  assert.equal(state.quest.over, true);
+  assert.match(page(), /Квест пройден/);
+  await press('back');                                              // из квеста — колоды проекта, затем проекты квеста, затем «Игры»
+  assert.equal([state.nav.v, state.nav.mode].join(), 'studyDecks,quest');
+  await press('back');
+  assert.equal([state.nav.v, state.nav.project].join(), 'studyDecks,');
+  await press('back');
+  assert.equal(state.nav.v, 'games');
+  await press('back');
+  assert.equal(state.nav.v, 'study');
 });

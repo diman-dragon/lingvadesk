@@ -1,5 +1,6 @@
 import { state } from '../state/appState.js';
 import { MODE_INFO } from '../constants/MODE_INFO.js';
+import { GAMES } from '../constants/GAMES.js';
 import listDeckStats from '../repo/listDeckStats.js';
 import loadLimits from '../study/loadLimits.js';
 import planInfo from '../study/planInfo.js';
@@ -16,7 +17,7 @@ import emptyState from '../components/emptyState.js';
  * всего · изучено · сегодня (цвет, красный «?» при просрочке) и выучено / в процессе / новых. Нажатие на область запускает режим (actions/pickScope).
  */
 export default async function studyDecksView() {
-  const m = MODE_INFO.find(x => x.mode === state.nav.mode), { project } = state.nav;
+  const m = [...MODE_INFO, ...GAMES].find(x => x.mode === state.nav.mode), { project } = state.nav;
   const decks = planInfo(await listDeckStats(), await loadLimits()).filter(d => Number(d.total));
   const group = groupProjects(decks).find(g => g.id === project);
   const head = header(group ? group.name : `${m.icon} ${m.title}`, { left: backButton('back'), right: layoutToggle() });

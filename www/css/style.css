@@ -205,6 +205,8 @@ input.ans{margin:0 0 8px;font-size:17px;text-align:center}
 /* ===== Игра ===== */
 .ghud{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 6px;font-size:15px}
 .ghud b{font-size:26px;color:var(--accent)}
+.qpath{display:flex;gap:4px;margin:0 0 10px;flex:none}.qpath i{flex:1;min-width:0;height:8px;border-radius:99px;background:var(--surface2)}
+.qpath i.ok{background:var(--good)}.qpath i.bad{background:var(--again)}.qpath i.cur{background:var(--accent)}
 .ghud .combo{color:var(--accent2);font-weight:700;min-width:84px;text-align:right}
 .ghud #gsec{font-weight:700;color:var(--muted);min-width:24px;text-align:right}
 #gtime{transition:width .1s linear}

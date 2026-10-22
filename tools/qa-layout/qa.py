@@ -101,9 +101,21 @@ def run(vw, vh, font, shots):
                     if break_.count(): act('giveUp'); chk(f'{mode}-c{k}-giveup'); act('skip')
             act('back'); 
         # game
-        act('goStudy'); act('openMode', id='game'); act('openProjectDecks', id=1); act('pickScope', id='d:1'); page.wait_for_timeout(300)
+        act('goStudy'); act('openMode', id='game'); act('openGameKind', id='blitz'); act('openProjectDecks', id=1); act('pickScope', id='d:1'); page.wait_for_timeout(300)
         for k in range(3):
             chk(f'game-q{k}'); page.locator('[data-act="gamePick"]').first.click(timeout=3000); page.wait_for_timeout(1000)
+        # игры и квест
+        act('goStudy'); act('openMode', id='game'); pages('games')
+        act('openGameKind', id='quest'); act('openProjectDecks', id=1); act('pickScope', id='d:1'); page.wait_for_timeout(300)
+        for k in range(7):
+            chk(f'quest-s{k}')
+            if page.locator('[data-act="questPick"]').count(): act('questPick', i=0)
+            elif page.locator('#ans').count():
+                page.fill('#ans', 'x'); act('questCheck')
+            else: break
+            chk(f'quest-s{k}-answered')
+            if page.locator('[data-act="questNext"]').count(): act('questNext')
+        chk('quest-end')
         b.close()
     return probs, errs
 CONF = {(360,640,'m'),(360,640,'l'),(320,568,'m')}

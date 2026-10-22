@@ -2,7 +2,6 @@ import { MODE_INFO } from '../constants/MODE_INFO.js';
 import listDeckStats from '../repo/listDeckStats.js';
 import loadLimits from '../study/loadLimits.js';
 import loadToday from '../study/loadToday.js';
-import bestScore from '../repo/bestScore.js';
 import planInfo from '../study/planInfo.js';
 import header from '../components/header.js';
 import button from '../components/button.js';
@@ -19,7 +18,7 @@ const sum = (list, f) => list.reduce((a, x) => a + f(x), 0);
  * Все числа читаются из базы.
  */
 export default async function studyHubView() {
-  const [decks, lim, today, best] = await Promise.all([listDeckStats(), loadLimits(), loadToday(), bestScore()]);
+  const [decks, lim, today] = await Promise.all([listDeckStats(), loadLimits(), loadToday()]);
   const top = header('Давай-ка поучим…', { right: layoutToggle() });
   const total = sum(decks, d => Number(d.total));
   if (!total) {
@@ -29,6 +28,6 @@ export default async function studyHubView() {
   const stats = row(statCard(sum(info, d => Number(d.due)), 'к повторению') + statCard(fresh, 'новых') + statCard(today.n, 'сегодня') + statCard(today.current, 'дней подряд'), 'stats');
   const plan = left ? `По плану на сегодня: ${left}` : today.n ? '✓ Дневной план выполнен — можно учить дальше' : '✓ На сегодня ничего не запланировано';
   const sums = { total, learned: total - sum(decks, d => Number(d.fresh)), left, late: sum(decks, d => Number(d.late)) };
-  const modes = pagedList(MODE_INFO.map(m => modeEntry(m, sums, m.mode === 'game' ? `🏆 ${best}` : '')));
+  const modes = pagedList(MODE_INFO.map(m => modeEntry(m, sums)));
   return top + stats + `<div class="plan${left ? '' : ' done'}">${plan}</div>${modes}`;
 }
