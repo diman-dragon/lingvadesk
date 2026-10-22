@@ -20,7 +20,7 @@
 | «На слух» с вариантами | `study/makeQuiz` (listen → всегда `choice`), `views/listenFace`, `quizControls`, `actions/pick` |
 | Сессия учёбы | `study/*` (`openStudy`, `startSession`, `buildOrder`, `gradeCard`, `track*`, `makeQuiz`), `views/sessionView` + `studyFace/listenFace/speakFace` |
 | Алгоритм SRS | `srs/*` (`nextSrs`, `nextInterval`, `nextEase`, `inferGrade`, `calibrate`, `speechGrade`) |
-| Игры | категория: `views/gamesView` (`constants/GAMES`, `components/gameEntry`, `actions/openGameKind`); «Блиц» — `game/*`, `views/gameView`; «Квест» — `game/{newQuest,answerQuest,submitQuest,finishQuest,openQuest}`, `views/quest{View,Controls,Result}`, `actions/quest*`; таблица `games` (у квеста `scope` с префиксом `quest:`) |
+| Игры | категория: `views/gamesView` (`constants/GAMES`, `components/gameEntry`, `actions/openGameKind`); «Блиц» — `game/*`, `views/gameView`; «Квест» — `game/{newQuest,answerQuest,submitQuest,finishQuest,openQuest}`, `views/quest{View,Controls,Result}`, `components/trail*`, `actions/quest*`; таблица `games` (у квеста `scope` с префиксом `quest:`) |
 | Произношение | `actions/record` → `native/speechListen` → `speech/*.java`; `study/scoreSpeech`, `srs/speechGrade`, таблица `pronunciations` |
 | Статистика | `views/statsView` собирает данные → `stats/index.js` (12 параметров: today, streak, retention, learned, grades, modes, timing, decks, hard, forecast, speech, weak; каждый → `{icon,title,value,sub,detail}`) → элементы `entry` + окно `components/statSheet`; вычисления — `study/{retention,dayBars,forecastBars,gradeSplit,medianTimes,streaks}`, SQL — `repo/list*` |
 | Нижние окна (sheet) | `components/sheetShell` (общая оболочка), `statSheet` (параметр статистики); открыто окно статистики — `state.sheet = 'stat:<n>'`, закрывает `closeSheet`/«Назад» |
@@ -48,7 +48,7 @@
 | `session` | sessionView | Учёба | сама учёба (flip / выбор / ввод / на слух / произношение) |
 | `games` | gamesView | Учёба | категория «Игры»: Блиц, Квест (список/сетка, рекорды); тап → `studyDecks` с `mode: blitz\|quest` |
 | `game` | gameView | Учёба | «Блиц» 60 с |
-| `quest` | questView | Учёба | «Квест»: маршрут этапов, 3 жизни, выбор / ввод |
+| `quest` | questView | Учёба | «Квест»: тропинка с героем, 3 жизни, выбор / ввод |
 | `stats` | statsView | Статистика | 12 параметров списком/сеткой, тап → подробное окно (`state.sheet='stat:<n>'`) |
 | `settings` | settingsView | Настройки | 6 страниц: Вид · Учёба · Голос · Лимиты · Данные · О нас |
 
@@ -76,6 +76,7 @@
 `docs/ARCHITECTURE.md` (подробно по экранам/учёбе/жестам) · `CONVENTIONS.md` · `FORMATS.md` (форматы файлов) · `UPDATES.md` · `DECISIONS.md` (слияние с LingoCards) · `CHANGELOG.md` (история по версиям).
 
 ## 9. Недавние изменения
+- **2.0.1** — «Квест»: тропинка с героем (`components/{trail,trailPoints}`, `dom/walkHero`, `QUEST.heroes/trail`; герой идёт к узлу после ответа — `quest.walking`).
 - **2.0.0** — голоса озвучки: страница настроек «Голос» (`views/voicePage`, `components/voiceRow`, `tts/*`, `actions/{setVoice,testVoice,refreshVoices}`), Java `TtsVoices` + голос/скорость/высота в `TtsSay`; выбор хранится как `voice:<язык>:<слот>` в `settings` (`state.voices`), слоты — `constants/SPEAKERS` (база под диалоги); `speakText(text, lang, slot)`.
 - **2.0.0** — игры в одной категории «Игры» (`views/gamesView`, `components/gameEntry`, `constants/GAMES`, `actions/openGameKind`; режим `game` на хабе → экран `games` → `studyDecks` с `mode: blitz|quest`) и новая игра «Квест» (`game/*Quest`, `views/quest*`, `constants/QUEST`, `state.quest`; рекорд — `bestScore('quest')`, префикс `quest:` в `games.scope`).
 - **2.0.0** — варианты ответа («На слух», игра): всегда сетка 2×2 фиксированной высоты, без столбца и прокрутки; текст каждого варианта уменьшается, если большой (`dom/fitOpts`, `components/optGrid`).

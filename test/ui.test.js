@@ -872,6 +872,7 @@ test('игры: категория «Игры» → Блиц и Квест → �
   await press('pickScope', { id: `d:${page().match(/data-id="d:(\d+)"/)[1]}` });
   assert.equal(state.nav.v, 'quest', toastEl.textContent);
   assert.match(page(), /Этап 1 \/ 8/);
+  assert.match(page(), /id="hero"/);                                // персонаж на тропинке
   for (let n = 0; n < 8; n++) {
     const s = state.quest.stages[state.quest.i];
     if (s.kind === 'choice') await press('questPick', { i: s.options.indexOf(s.answer) });

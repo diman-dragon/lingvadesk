@@ -7,14 +7,14 @@ const stage = (card, i, last, pool) => {
 };
 /**
  * Новый квест по карточкам области: маршрут из min(QUEST.stages, карточек) этапов без повторов; нужны минимум две карточки с разными переводами.
- * { kind:'quest', scope, stages[], i, lives, score, correct, wrong, marks[] ('ok'|'bad'), picked, typed, result, since, over, won, record }.
+ * { kind:'quest', scope, hero (эмодзи), stages[], i, lives, score, correct, wrong, marks[] ('ok'|'bad'), walking (герой идёт к узлу после ответа), picked, typed, result, since, over, won, record }.
  */
 export default function newQuest(cards, scope, now = Date.now()) {
   const pool = [...new Set(cards.map(c => c.back))];
   if (pool.length < 2) throw new Error('Для квеста нужно хотя бы две карточки с разными переводами');
   const picked = shuffle(cards).slice(0, QUEST.stages), last = picked.length - 1;
   return {
-    kind: 'quest', scope, stages: picked.map((c, i) => stage(c, i, last, pool)), i: 0, lives: QUEST.lives, score: 0, correct: 0, wrong: 0, marks: [],
+    kind: 'quest', scope, hero: shuffle(QUEST.heroes)[0], stages: picked.map((c, i) => stage(c, i, last, pool)), i: 0, lives: QUEST.lives, score: 0, correct: 0, wrong: 0, marks: [], walking: false,
     picked: null, typed: '', result: null, since: now, startedAt: now, over: false, won: false, record: false
   };
 }
