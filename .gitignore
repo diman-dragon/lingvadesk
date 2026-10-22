@@ -10,3 +10,4 @@ android/local.properties
 .vscode/*
 !.vscode/extensions.json
 *.jks
+tools/qa-layout/shots/

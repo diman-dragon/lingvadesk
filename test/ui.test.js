@@ -155,20 +155,20 @@ test('учёба: «Давай-ка поучим…» — режимы; нажа
   assert.equal(state.nav.v, 'studyDecks');
   assert.equal(count(/class="tab on"/), 1);
   assert.match(app.innerHTML, /<header>.*Интервальное повторение.*data-act="toggleLayout"/);
-  for (const t of ['Все колоды', 'English', 'выучено 0 · в процессе 0 · новых 8', 'class="sinfo"', 'всего <b>8</b>', 'изучено <b>0</b>', 'today lv1">сегодня <b>8']) assert.match(page(), new RegExp(t));
-  assert.equal(count(/data-act="pickScope"/), 1);                 // «Все колоды»
+  for (const t of ['English', 'выучено 0 · в процессе 0 · новых 8', 'class="sinfo"', 'всего <b>8</b>', 'изучено <b>0</b>', 'today lv1">сегодня <b>8']) assert.match(page(), new RegExp(t));
+  assert.equal(count(/data-act="pickScope"/), 0);                 // «Все колоды» и «Весь проект» убраны: область — проект, затем колода
   assert.equal(count(/data-act="openProjectDecks"/), 1);          // проект English (колоды сгруппированы по проектам)
   assert.match(page(), /колод: 1 · выучено 0/);
-  assert.equal(count(/class="item"/), 2);
+  assert.equal(count(/class="item"/), 1);
   await press('toggleLayout');
-  assert.equal(count(/class="gtile"/), 2);
+  assert.equal(count(/class="gtile"/), 1);
   await press('toggleLayout');
   await press('openProjectDecks', { id: 1 });                    // колоды проекта
   assert.equal(state.nav.project, 1);
   assert.match(app.innerHTML, /<header>.*English.*data-act="toggleLayout"/);
-  for (const t of ['Весь проект', 'Basics', 'Интервальное повторение', 'всего <b>8</b>']) assert.match(page(), new RegExp(t));
-  assert.equal(count(/data-act="pickScope"/), 2);                 // весь проект и колода
-  assert.match(page(), /data-id="p:1"/);
+  for (const t of ['Basics', 'Интервальное повторение', 'всего <b>8</b>']) assert.match(page(), new RegExp(t));
+  assert.doesNotMatch(page(), /Весь проект/);
+  assert.equal(count(/data-act="pickScope"/), 1);                 // только колода
   assert.match(page(), /data-id="d:1"/);
   await press('back');                                           // «Назад» — к проектам режима
   assert.equal([state.nav.v, state.nav.project].join(), 'studyDecks,');
@@ -186,10 +186,6 @@ test('учёба: «Давай-ка поучим…» — режимы; нажа
   assert.equal([state.nav.v, state.session.mode, state.session.scope].join(), 'session,srs,d:1');
   await press('back');                                           // «Назад» из сессии — снова колоды проекта
   assert.deepEqual([state.nav.v, state.nav.project], ['studyDecks', 1]);
-  await press('pickScope', { id: 'p:1' });                        // «Весь проект»
-  assert.equal(state.session.scope, 'p:1');
-  assert.equal(state.session.total, 8);
-  await press('back');
   await press('back');
   assert.equal(state.nav.v, 'studyDecks');
   await press('back');
@@ -811,6 +807,30 @@ test('статистика: параметры списком / сеткой, п
   assert.match(app.innerHTML, /class="tab on" data-act="goStats"/);
   await press('goStudy');
   assert.equal(state.nav.v, 'study');
+});
+
+test('текст помещается: автоподгонка карточки, варианты ответа, длинные заголовки', async () => {
+  const fit = await imp('dom/fitFaces.js'), { FIT_MIN } = await import('../www/js/constants/FIT_MIN.js');
+  const mk = box => { const st = {}; return { st, clientHeight: box, get scrollHeight() { return 300 * (st['--fit'] ?? 1); }, style: { removeProperty: k => delete st[k], setProperty: (k, v) => { st[k] = v; } } }; };
+  const faces = [mk(300), mk(150), mk(10)];                         // содержимое 300 px: влезает сразу / после уменьшения / не влезет никогда
+  const doc = globalThis.document, prev = doc.querySelectorAll;
+  doc.querySelectorAll = sel => (sel === '.face' ? faces : []);
+  try { fit(); } finally { doc.querySelectorAll = prev; }
+  assert.equal(faces[0].st['--fit'], undefined);                    // помещалась — размер обычный
+  assert.ok(faces[1].st['--fit'] < 1 && faces[1].st['--fit'] >= 0.5);   // уменьшено ровно до того, как поместилось
+  assert.equal(faces[2].st['--fit'], FIT_MIN);                      // предел: не мельче FIT_MIN
+  const optGrid = await imp('components/optGrid.js');
+  assert.match(optGrid(['да', 'нет'], 'pick'), /class="opts"/);
+  assert.match(optGrid(['да', 'Очень длинный перевод в несколько слов'], 'pick'), /class="opts one"/);   // длинные — в один столбец
+  assert.match(optGrid(['а'.repeat(61)], 'pick'), /class="opt long"/);                                    // очень длинные — мельче
+  const header = await imp('components/header.js');
+  assert.match(header('Коротко'), /<h1>/);
+  assert.match(header('Название подлиннее обычного, ещё длиннее'), /<h1 class="long">/);
+  assert.match(header('x'.repeat(61)), /<h1 class="xlong">/);
+  const css = (await import('node:fs')).readFileSync('www/css/style.css', 'utf8');
+  assert.match(css, /\.page\{[^}]*minmax\(0,1fr\)/);                // длинное слово не раздвигает колонку списка
+  assert.match(css, /\.opts\{[^}]*max-height/);                      // варианты прокручиваются внутри, а не вытесняют карточку
+  assert.match(css, /\.flip\{[^}]*min-height:150px/);                 // карточка не схлопывается
 });
 
 test('текст целиком: названия и подписи переносятся, не обрезаются (нет многоточия и nowrap в списках)', async () => {

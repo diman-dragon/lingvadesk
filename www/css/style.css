@@ -18,6 +18,7 @@ body{background:var(--bg);color:var(--text);font:16px/1.4 system-ui,-apple-syste
 h3{margin:0 0 8px 2px;font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
 header{display:flex;align-items:center;gap:8px;margin:2px 0 12px;min-height:42px;flex:none}
 header h1{flex:1;min-width:0;margin:0;font-size:24px;font-weight:750;letter-spacing:-.02em;line-height:1.15;overflow-wrap:anywhere}
+header h1.long{font-size:19px;line-height:1.2}header h1.xlong{font-size:15px;line-height:1.25}
 
 /* ===== Кнопки и поля ===== */
 button{font:inherit;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 16px;transition:transform .12s,background .2s,box-shadow .2s}
@@ -38,12 +39,13 @@ summary::-webkit-details-marker{display:none}
 
 /* ===== Страницы вместо прокрутки ===== */
 .pager{flex:1;min-height:0;overflow:hidden;position:relative}
-.page{display:grid;gap:10px;align-content:start}
-.page.grid{grid-template-columns:repeat(2,1fr);gap:12px}
-.dots{flex:none;min-height:30px;display:flex;align-items:center;justify-content:center;gap:4px}
+.page{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;align-content:start}
+.page>*{min-width:0}
+.page.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.dots{flex:none;min-height:30px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--border);padding:0;margin:8px 5px;transition:background .2s,transform .2s}
 .dot.on{background:var(--accent);transform:scale(1.35)}
-.dtab{padding:5px 12px;border-radius:999px;font-size:13px;color:var(--muted);background:var(--surface2);transition:background .2s,color .2s}
+.dtab{padding:5px 10px;border-radius:999px;font-size:13px;color:var(--muted);background:var(--surface2);transition:background .2s,color .2s}
 .dtab.on{background:var(--accent);color:var(--accent-t);font-weight:700}
 .row.foot{flex:none;margin:6px 0 4px}
 .row.foot>button{padding:12px 8px;font-size:15px}
@@ -57,11 +59,11 @@ summary::-webkit-details-marker{display:none}
 /* ===== Списки: фиксированная высота элементов (должна совпадать с constants/PAGER) ===== */
 .item{display:flex;align-items:center;gap:12px;min-height:64px;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:8px 14px;box-shadow:var(--shadow);transition:transform .12s}
 .item:active{transform:scale(.98)}
-.item .t{flex:1;min-width:0;font-weight:650;overflow-wrap:break-word}
+.item .t{flex:1;min-width:0;font-weight:650;overflow-wrap:anywhere}
 .item .t small{display:block;font-weight:400;color:var(--muted);overflow-wrap:anywhere}
 .avatar{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;color:#fff;font-weight:750;font-size:18px;flex:none}
 .item .tl{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;min-width:0}
-.item .tn{min-width:0;max-width:100%;overflow-wrap:break-word}
+.item .tn{min-width:0;max-width:100%;overflow-wrap:anywhere}
 .item .tl .mark{flex:none}
 .acts{display:flex;gap:0;flex:none;align-items:center}
 button.ib{width:36px;height:36px;padding:0;border:0;border-radius:12px;background:transparent;box-shadow:none;color:var(--muted);display:grid;place-items:center}
@@ -143,31 +145,32 @@ select{appearance:none;-webkit-appearance:none;background-image:linear-gradient(
 .counter .ctx{overflow-wrap:anywhere;text-align:right}
 .prog{flex:none;height:7px;background:var(--surface2);border-radius:99px;overflow:hidden;margin-bottom:10px}
 .prog>i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px;transition:width .4s}
-.face{background:var(--surface);border:1px solid var(--border);border-radius:26px;padding:18px;text-align:center;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;box-shadow:var(--shadow)}
-.view>.face{flex:1;min-height:0}
-.big{font-size:calc(30px*var(--fs));font-weight:750;line-height:1.2;overflow-wrap:anywhere}
-.big.long{font-size:calc(22px*var(--fs));font-weight:700}
-.big.xlong{font-size:calc(17px*var(--fs));font-weight:650;line-height:1.3}
-.ex{font-size:calc(15px*var(--fs));color:var(--muted)}
-.hint{font-size:12px}
-.flip{flex:1;min-height:0;perspective:1400px;margin:0 0 10px;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none}
+.face{background:var(--surface);border:1px solid var(--border);border-radius:26px;padding:calc(18px*var(--fit,1));text-align:center;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:calc(10px*var(--fit,1));box-shadow:var(--shadow)}
+.view>.face{flex:1;min-height:120px}
+.big{font-size:calc(30px*var(--fs)*var(--fit,1));font-weight:750;line-height:1.2;overflow-wrap:anywhere}
+.big.long{font-size:calc(22px*var(--fs)*var(--fit,1));font-weight:700}
+.big.xlong{font-size:calc(17px*var(--fs)*var(--fit,1));font-weight:650;line-height:1.3}
+.ex{box-sizing:border-box;padding:0 4px;max-width:100%;overflow-wrap:anywhere;font-size:calc(15px*var(--fs)*var(--fit,1));color:var(--muted)}
+.hint{font-size:calc(12px*var(--fit,1))}
+.face .muted{font-size:calc(16px*var(--fs)*var(--fit,1))}.face .muted.hint{font-size:calc(12px*var(--fit,1))}.face .verdict{font-size:calc(15px*var(--fit,1))}
+.flip{flex:1;min-height:150px;perspective:1400px;margin:0 0 10px;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none}
 .flip-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.3,.7,.2,1)}
 .flip.flipped .flip-inner{transform:rotateY(180deg)}
 .flip .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:auto;scrollbar-width:none}
 .flip .face::-webkit-scrollbar{display:none}
 .flip .front{background:linear-gradient(160deg,var(--surface),var(--surface2))}
 .flip .back{transform:rotateY(180deg);border-color:var(--accent)}
-#controls{flex:none}
+#controls{flex:0 1 auto;min-height:0;display:flex;flex-direction:column}
 #controls .row{margin:0 0 6px}
-.nav-row{align-items:center}
+.nav-row{align-items:center;flex:none}
 
 /* ===== Озвучка: круглая кнопка со значком-динамиком; волны оживают, пока слово звучит ===== */
 button.speak{display:inline-grid;place-items:center;flex:none;padding:0;border:0;border-radius:50%;color:var(--accent-t);background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 8px 22px var(--glow),inset 0 1px 0 rgba(255,255,255,.28)}
-button.speak.xl{width:120px;height:120px;margin:6px 0}
-button.speak.xl svg{width:68px;height:68px}
-button.speak.lg{width:88px;height:88px}
-button.speak.lg svg{width:50px;height:50px}
-button.speak.sm{width:40px;height:40px;margin-left:6px;vertical-align:middle;box-shadow:0 4px 12px var(--glow)}
+button.speak.xl{width:calc(120px*var(--fit,1));height:calc(120px*var(--fit,1));margin:6px 0}
+button.speak.xl svg{width:57%;height:57%}
+button.speak.lg{width:calc(88px*var(--fit,1));height:calc(88px*var(--fit,1))}
+button.speak.lg svg{width:57%;height:57%}
+button.speak.sm{width:calc(40px*var(--fit,1));height:calc(40px*var(--fit,1));margin-left:6px;vertical-align:middle;box-shadow:0 4px 12px var(--glow)}
 button.speak.sm svg{width:23px;height:23px}
 button.speak:active{transform:scale(.9)}
 .speak .w1,.speak .w2{opacity:.8}
@@ -176,7 +179,11 @@ button.speak:active{transform:scale(.9)}
 @keyframes wave{0%,100%{opacity:.2}50%{opacity:1}}
 
 /* ===== Вопросы с выбором и вводом, подсказка-пример, итог сессии, статистика ===== */
-.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 8px}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 8px;flex:0 1 auto;min-height:88px;max-height:min(28dvh,190px);overflow-y:auto;scrollbar-width:none}
+.opts::-webkit-scrollbar{display:none}
+.opts.one{grid-template-columns:minmax(0,1fr)}
+.view:not(.form) .opts,.view:not(.form) .opts *{touch-action:pan-y}
+button.opt.long{font-size:13px}
 button.opt{padding:10px 8px;font-size:15px;line-height:1.2;min-height:48px;overflow-wrap:anywhere;border-width:1.5px}
 button.opt.ok{border-color:var(--good);color:var(--good);font-weight:700}
 button.opt.bad{border-color:var(--again);color:var(--again)}
@@ -250,6 +257,7 @@ button.speak.mic.rec{animation:recPulse 1s ease-in-out infinite;background:linea
 
 /* ===== Низкие экраны (≤ 700px): компактнее, чтобы всё помещалось без прокрутки ===== */
 @media (max-height:700px){
+  .face{padding:calc(12px*var(--fit,1));gap:calc(6px*var(--fit,1))}button.speak.xl{margin:2px 0}.flip .showtext{padding:5px 10px}
   .stat{padding:8px 4px}.stat b{font-size:22px}.stats{margin-bottom:8px}
   header{margin-bottom:8px}.field{margin-bottom:8px}
   .setting{padding:10px 0}.s-title{margin-bottom:6px}
@@ -264,6 +272,7 @@ button.speak.mic.rec{animation:recPulse 1s ease-in-out infinite;background:linea
 
 /* ===== Совсем низкие экраны (≤ 600px) ===== */
 @media (max-height:600px){
+  .opts{max-height:min(24dvh,140px)}.flip{min-height:130px}
   header{min-height:36px;margin-bottom:6px}header h1{font-size:21px}button.icon{width:36px;height:36px;font-size:18px}
   .stat{padding:6px 4px}.stat b{font-size:20px}.order>span{margin-bottom:3px}
   .setting{padding:6px 0}.s-title{margin-bottom:4px}.seg button{padding:6px 4px;font-size:13px}.group{padding:0 12px}

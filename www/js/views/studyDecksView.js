@@ -3,7 +3,6 @@ import { MODE_INFO } from '../constants/MODE_INFO.js';
 import listDeckStats from '../repo/listDeckStats.js';
 import loadLimits from '../study/loadLimits.js';
 import planInfo from '../study/planInfo.js';
-import sumDecks from '../study/sumDecks.js';
 import groupProjects from '../study/groupProjects.js';
 import header from '../components/header.js';
 import backButton from '../components/backButton.js';
@@ -13,7 +12,7 @@ import pagedList from '../components/pagedList.js';
 import emptyState from '../components/emptyState.js';
 /**
  * Экран режима учёбы (нажатие на режим): колоды сгруппированы по проектам, список или сетка, как на главной «Учёбы».
- * Сверху — «Все колоды» и проекты (нажатие открывает колоды проекта: «Весь проект» + каждая колода); на каждом элементе
+ * Сверху — проекты (нажатие открывает колоды проекта), внутри — колоды; на каждом элементе
  * всего · изучено · сегодня (цвет, красный «?» при просрочке) и выучено / в процессе / новых. Нажатие на область запускает режим (actions/pickScope).
  */
 export default async function studyDecksView() {
@@ -23,7 +22,7 @@ export default async function studyDecksView() {
   const head = header(group ? group.name : `${m.icon} ${m.title}`, { left: backButton('back'), right: layoutToggle() });
   if (!decks.length || (project && !group)) return head + emptyState({ icon: '🃏', title: 'Здесь пока нет карточек', text: 'Добавьте карточки в библиотеке.' });
   const items = group
-    ? [deckEntry({ ...group, name: 'Весь проект' }, 'pickScope', `p:${group.id}`, 'whole'), ...group.decks.map(d => deckEntry(d, 'pickScope', `d:${d.id}`))]
-    : [deckEntry(sumDecks(decks), 'pickScope', 'all', 'all'), ...groupProjects(decks).map(g => deckEntry(g, 'openProjectDecks', g.id, 'project'))];
+    ? group.decks.map(d => deckEntry(d, 'pickScope', `d:${d.id}`))
+    : groupProjects(decks).map(g => deckEntry(g, 'openProjectDecks', g.id, 'project'));
   return head + `<div class="sub">${group ? `${m.icon} ${m.title}` : m.hint}</div>` + pagedList(items);
 }

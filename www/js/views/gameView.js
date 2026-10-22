@@ -1,9 +1,9 @@
 import { state } from '../state/appState.js';
 import { GAME } from '../constants/GAME.js';
-import esc from '../util/esc.js';
 import header from '../components/header.js';
 import backButton from '../components/backButton.js';
 import button from '../components/button.js';
+import optGrid from '../components/optGrid.js';
 import big from '../components/big.js';
 import row from '../components/row.js';
 import faceBox from '../components/faceBox.js';
@@ -22,8 +22,7 @@ export default async function gameView() {
   const head = header('Игра', { left: backButton('back') });
   if (g.over) return head + await result(g);
   const q = g.q, hearts = '❤️'.repeat(g.lives) + '🖤'.repeat(GAME.lives - g.lives);
-  const opts = q.options.map((t, i) => button({ act: 'gamePick', cls: `opt${mark(q, i)}`, label: esc(t), data: { i } })).join('');
   return head + `<div class="ghud"><span>${hearts}</span><b>${g.score}</b><span class="combo">${g.combo > 1 ? `×${Math.min(g.combo, GAME.comboMax)} комбо` : ''}</span><span id="gsec">${Math.ceil(left / 1000)}</span></div>` +
     `<div class="prog"><i id="gtime" style="width:${left / (GAME.seconds * 10)}%"></i></div>` +
-    faceBox(`<div class="muted">Выберите перевод</div>${big(q.prompt)}`) + `<div class="opts">${opts}</div>`;
+    faceBox(`<div class="muted">Выберите перевод</div>${big(q.prompt)}`) + optGrid(q.options, 'gamePick', i => mark(q, i));
 }

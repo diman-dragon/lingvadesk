@@ -6,6 +6,7 @@ import insertPronunciation from '../repo/insertPronunciation.js';
 import currentCard from '../study/currentCard.js';
 import scoreSpeech from '../study/scoreSpeech.js';
 import speechResult from '../views/speechResult.js';
+import fitFaces from '../dom/fitFaces.js';
 import buzz from '../dom/buzz.js';
 import toast from '../dom/toast.js';
 /** Микрофон в «Говорить»: слушаем одну попытку, оцениваем сходство с текстом карточки, пишем попытку в базу (pronunciations). */
@@ -23,6 +24,7 @@ export default async function record(d, el) {
     await insertPronunciation(card.id, { engine: SPEECH.engine, transcript: r.text, score, audio: r.audio ?? null });
     state.speech = { id: card.id, heard: r.text, score, attempts: prev + 1 };
     box.innerHTML = speechResult(state.speech);
+    fitFaces();
     buzz(score >= SPEECH.good ? 12 : [30, 40, 30]);
   } catch (e) {
     box.innerHTML = state.speech?.id === card.id ? speechResult(state.speech) : '';

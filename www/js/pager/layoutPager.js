@@ -3,6 +3,7 @@ import perPage from './perPage.js';
 import pageCount from './pageCount.js';
 import measureStarts from './measureStarts.js';
 import uniformStarts from './uniformStarts.js';
+import fitFaces from '../dom/fitFaces.js';
 import pagerDots from '../components/pagerDots.js';
 /** Делит элементы на страницы по их настоящей высоте и выводит текущую; anim — класс анимации листания. */
 export default function layoutPager(anim = '') {
@@ -17,4 +18,5 @@ export default function layoutPager(anim = '') {
   const slice = p.items.slice(p.starts[state.page] ?? 0, p.starts[state.page + 1] ?? p.items.length).join('');
   el.innerHTML = `<div class="page${grid} ${anim}">${slice}</div>`;
   document.getElementById('dots').innerHTML = pagerDots(count);
+  fitFaces();
 }

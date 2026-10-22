@@ -4,6 +4,7 @@ import { TAB_OF } from '../constants/TAB_OF.js';
 import views from '../views/index.js';
 import tabBar from '../components/tabBar.js';
 import layoutPager from '../pager/layoutPager.js';
+import fitFaces from '../dom/fitFaces.js';
 import setAwake from '../native/setAwake.js';
 /** Экран + нижняя панель (всегда на месте) + постраничный вывод. Анимация проигрывается один раз. Во время учёбы экран не гаснет. */
 export default async function render() {
@@ -13,6 +14,7 @@ export default async function render() {
   appEl.innerHTML = `<div class="view ${state.anim}${form}">${body}</div>${tabBar(TAB_OF[state.nav.v] ?? '')}`;
   state.anim = '';
   layoutPager();
+  fitFaces();
   const awake = state.nav.v === 'session';
   if (awake !== state.awake) { state.awake = awake; setAwake(awake); }
 }

@@ -1,6 +1,6 @@
 # Карта проекта LingvaDesk (читать ПЕРВОЙ — вместо чтения всего кода)
 
-> Версия 1.9.3 · Capacitor 6.2.0 (Android) · JS без сборки (ES-модули) в `www/`, Java-плагины в `android/`.
+> Версия 1.9.4 · Capacitor 6.2.0 (Android) · JS без сборки (ES-модули) в `www/`, Java-плагины в `android/`.
 > Правило кода: **один файл — одна функция** (≤45 строк JS), слои вниз: `actions → study/deckio/backup → repo → native → Java`; `views → components`.
 > Обновляй эту карту при каждом изменении структуры (и поднимай версию — см. «Релиз»).
 
@@ -26,6 +26,7 @@
 | Нижние окна (sheet) | `components/sheetShell` (общая оболочка), `statSheet` (параметр статистики); открыто окно статистики — `state.sheet = 'stat:<n>'`, закрывает `closeSheet`/«Назад» |
 | Сводка на карточке учёбы | `components/studyInfo` (всего · изучено · сегодня + красный «?»), `study/loadLevel` + `constants/LOAD_STEPS` (4 градации, CSS `.today.lv0…lv3`), данные — `repo/listDeckStats` (`total fresh due late mature`) |
 | Порядок карточек | `study/buildOrder` — всегда случайный (`util/shuffle`, затем устойчивая сортировка по сроку / давности) |
+| Текст помещается | `dom/fitFaces` (авто-масштаб `--fit` у `.face`, `zoom` у страницы списка; вызывается из `nav/render`, `pager/layoutPager`, `finishQuiz`, `showText`, `record`), `components/optGrid` (варианты ответа: `.one`, `.long`, прокрутка), `components/header` (`long`/`xlong`), CSS `.page` с `minmax(0,1fr)`; **проверка в браузере — `tools/qa-layout/`** (после правок CSS/вёрстки запускать) |
 | Тап по кнопке / свайп | `gestures/*`: метка `swipe.suppress` (время) гасит клик только `SWIPE.suppressMs` после жеста — иначе съедала следующее нажатие |
 | Импорт/экспорт | `deckio/*` (`readImportFile` → `readImportText`/`readZip` → `saveLibrary`; `exportLibraryToFile`), `views/importFormView`, `actions/{confirmImport,importLibrary,importPaste,exportLibrary}` |
 | Бэкап | `backup/*`, `native/backup*`, Java `backup/*` (`.fcbak` = ZIP {manifest, app.db}) |
@@ -65,13 +66,15 @@
 `core/` (AtomicPlugin и утилиты) · `db/` (Schema, миграции, Db*Plugin) · `saf/` (открыть/сохранить файл) · `backup/` · `tts/` · `speech/` (SpeechRecognizer) · `icon/` (4 activity-alias, будильник 30 мин) · `anki/` (чтение .apkg) · `screen/` (KeepAwake) · `PluginList.java` (регистрация), `MainActivity` + `BackToJs`. Один плагин — одна операция `exec`.
 
 ## 7. Проверка и релиз
-- `npm test` (Node 22, `node:sqlite`, 113 тестов; UI-сценарии — `test/ui.test.js`, мост подменяет `test/helpers/installBridge.js`) · `npm run check` (атомарность: один export, ≤45 строк, нет осиротевших модулей/битых импортов).
+- `tools/qa-layout/all.sh` — проверка вёрстки в Chromium (длинные тексты, все экраны; см. README рядом).
+- `npm test` (Node 22, `node:sqlite`, 114 теста; UI-сценарии — `test/ui.test.js`, мост подменяет `test/helpers/installBridge.js`) · `npm run check` (атомарность: один export, ≤45 строк, нет осиротевших модулей/битых импортов).
 - Версия меняется **в трёх местах разом**: `package.json`, `www/js/constants/APP_VERSION.js`, дефолт в `android/app/build.gradle` (проверяет `test/version.test.js`) + запись в `CHANGELOG.md`. CI (`.github/workflows/android.yml`): тесты → debug APK, по тегу `vX.Y.Z` — подписанный релиз.
 
 ## 8. Документы глубже (читать только при необходимости)
 `docs/ARCHITECTURE.md` (подробно по экранам/учёбе/жестам) · `CONVENTIONS.md` · `FORMATS.md` (форматы файлов) · `UPDATES.md` · `DECISIONS.md` (слияние с LingoCards) · `CHANGELOG.md` (история по версиям).
 
 ## 9. Недавние изменения
+- **1.9.4** — убраны «Все колоды»/«Весь проект»; проверка вёрстки в Chromium (`tools/qa-layout`) и исправления: варианты ответа в «На слух»/игре не сжимают карточку, автоподгонка текста, длинные слова/заголовки.
 - **1.9.3** (вместо нереализованной 1.10.0) — тап по режиму в «Учёбе» открывает экран области режима: «Все колоды» + проекты → колоды проекта; список/сетка с информацией; `deckSheet`/`openSheet` удалены.
 - **1.9.1** — «На слух»: всегда выбор из 4 переводов (`study/makeQuiz`: для `listen` принудительно `choice` + направление `fwd`; лицо — `views/listenFace`, кнопки — `views/quizControls`, ответ — `actions/pick` → `study/finishQuiz`).
 - **1.9.0** — исправлены «залипающие» нажатия кнопок звука/микрофона/тестов (устаревшая метка подавления клика после свайпа); порядок карточек в учёбе случайный; сводка на карточках учёбы; статистика — список/сетка + подробные окна (`stats/*`, `statSheet`, `sheetShell`, `openStat`); `late` в `listDeckStats`; старые `views/stats{Overview,Grades,Decks,Hard,Speech}` удалены; в конвенции п.0 «читать карту».
