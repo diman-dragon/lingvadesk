@@ -50,7 +50,7 @@
 | `game` | gameView | Учёба | «Блиц» 60 с |
 | `quest` | questView | Учёба | «Квест»: тропинка с героем, 3 жизни, выбор / ввод |
 | `stats` | statsView | Статистика | 12 параметров списком/сеткой, тап → подробное окно (`state.sheet='stat:<n>'`) |
-| `settings` | settingsView | Настройки | 6 страниц: Вид · Учёба · Голос · Лимиты · Данные · О нас |
+| `settings` | settingsView | Настройки | 7 страниц: Вид · Учёба · Голос · Языки · Лимиты · Данные · О нас |
 
 Кольцо свайпов: library → study → stats → settings → library. «Назад» — свой стек `state.stack` (`nav/go` кладёт, `nav/popBack` снимает; Android → событие `lingvaBack` → `nav/systemBack`).
 
@@ -76,7 +76,8 @@
 `docs/ARCHITECTURE.md` (подробно по экранам/учёбе/жестам) · `CONVENTIONS.md` · `FORMATS.md` (форматы файлов) · `UPDATES.md` · `DECISIONS.md` (слияние с LingoCards) · `CHANGELOG.md` (история по версиям).
 
 ## 9. Недавние изменения
-- **2.0.1** — «Квест»: тропинка с героем (`components/{trail,trailPoints}`, `dom/walkHero`, `QUEST.heroes/trail`; герой идёт к узлу после ответа — `quest.walking`).
+- **2.1.0** — голоса: только локальные, группы по полу, имена-ярлыки (`tts/{voiceGender,voiceLabels,voicesFor}`, `components/voiceRow`); страница настроек «Языки» (`views/langPage`, `components/langRow`, `actions/{installVoices,checkSpeechLang}`, Java `TtsInstall`, `tts/speechStatus`): скачивание голосов и пакетов распознавания из приложения.
+- **2.1.0** — «Квест»: тропинка с героем (`components/{trail,trailPoints}`, `dom/walkHero`, `QUEST.heroes/trail`; герой идёт к узлу после ответа — `quest.walking`).
 - **2.0.0** — голоса озвучки: страница настроек «Голос» (`views/voicePage`, `components/voiceRow`, `tts/*`, `actions/{setVoice,testVoice,refreshVoices}`), Java `TtsVoices` + голос/скорость/высота в `TtsSay`; выбор хранится как `voice:<язык>:<слот>` в `settings` (`state.voices`), слоты — `constants/SPEAKERS` (база под диалоги); `speakText(text, lang, slot)`.
 - **2.0.0** — игры в одной категории «Игры» (`views/gamesView`, `components/gameEntry`, `constants/GAMES`, `actions/openGameKind`; режим `game` на хабе → экран `games` → `studyDecks` с `mode: blitz|quest`) и новая игра «Квест» (`game/*Quest`, `views/quest*`, `constants/QUEST`, `state.quest`; рекорд — `bestScore('quest')`, префикс `quest:` в `games.scope`).
 - **2.0.0** — варианты ответа («На слух», игра): всегда сетка 2×2 фиксированной высоты, без столбца и прокрутки; текст каждого варианта уменьшается, если большой (`dom/fitOpts`, `components/optGrid`).

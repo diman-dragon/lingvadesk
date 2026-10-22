@@ -451,7 +451,7 @@ test('свайпы по кругу: страницы → следующий эк
   await press('goLibrary');
   await swipeNavigate(-1);                                       // перед первой страницей — «Настройки»
   assert.equal(state.nav.v, 'settings');
-  assert.equal(state.page, 5);                                   // последняя из шести страниц настроек
+  assert.equal(state.page, 6);                                   // последняя из семи страниц настроек
   assert.match(page(), /LingvaDesk/);
   assert.match(page(), new RegExp(`Версия ${APP_VERSION.replace(/\./g, '\\.')}`));
   assert.match(page(), /DataLaw/);
@@ -472,7 +472,7 @@ test('внутри проекта страницы листаются по кр�
   assert.equal(state.nav.v, 'project');
 });
 
-test('настройки: шесть страниц, тема/шрифт/анимации/вибрация применяются и сохраняются', async () => {
+test('настройки: семь страниц, тема/шрифт/анимации/вибрация применяются и сохраняются', async () => {
   setHeight(400);
   await press('goSettings');
   assert.equal(state.pager.fixed, true);
@@ -480,7 +480,7 @@ test('настройки: шесть страниц, тема/шрифт/ани�
   const all = state.pager.items.join('');
   for (const t of ['Тема', 'AMOLED', 'Вибрация', 'Что показывать первым', 'Проверка', 'Автоозвучка', 'Новых карточек в день', 'Карточек за сессию', 'Импорт', 'Экспорт', 'Сбросить прогресс', 'Резервная копия']) assert.match(all, new RegExp(t));
   assert.doesNotMatch(all, /Вид библиотеки|Порядок карточек/);   // есть на основных экранах
-  assert.equal(count(/class="dtab/, page()), 6);
+  assert.equal(count(/class="dtab/, page()), 7);
   assert.match(app.innerHTML, /class="tab on" data-act="goSettings"/);   // вкладка «Настройки» подсвечена, шапка без «назад»
   assert.doesNotMatch(app.innerHTML, /<header>(?:(?!<\/header>)[\s\S])*data-act="goSettings"/);
   for (const [key, v] of [['theme', 'dark'], ['font', 'l'], ['anim', 'off'], ['layout', 'grid'], ['check', 'choice']]) await press('setPref', { key, v });

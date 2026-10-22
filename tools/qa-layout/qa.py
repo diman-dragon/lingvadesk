@@ -74,6 +74,7 @@ def run(vw, vh, font, shots):
         act('toggleLayout')  # back to list
         act('goSettings'); pages('settings')
         act('gotoPage', i=2); page.wait_for_timeout(300); chk('voice-page')
+        act('gotoPage', i=3); page.wait_for_timeout(300); chk('lang-page')
         # forms
         act('goLibrary'); act('newProject'); chk('projectForm'); act('back')
         act('goProject', id=1); act('newDeck'); chk('deckForm'); act('back')

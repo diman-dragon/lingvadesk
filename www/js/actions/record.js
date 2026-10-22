@@ -29,6 +29,7 @@ export default async function record(d, el) {
   } catch (e) {
     box.innerHTML = state.speech?.id === card.id ? speechResult(state.speech) : '';
     toast(e.message || 'Не удалось распознать речь');
+    if (/пакет/.test(e.message || '')) prepareSpeech(card.tts, true).then(t => t && toast(t));   // нет пакета языка — проверяем и скачиваем прямо отсюда
   } finally {
     state.listening = false;
     el?.classList?.remove('rec');

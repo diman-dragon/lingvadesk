@@ -22,6 +22,7 @@ export default function installBridge() {
     BackupRestore: () => ({ safety: 'pre-restore-1.db' }),
     TtsSpeak: a => { io.spoken = a; return {}; },
     TtsStop: () => ({}),
+    TtsInstall: () => ({}),
     TtsVoices: () => ({ voices: io.voices }),
     SpeechListen: a => { io.listened = a; if (io.heard instanceof Error) throw io.heard; return io.heard; },
     IconLevel: a => { io.icon = a; return { level: a.level ?? 0 }; },

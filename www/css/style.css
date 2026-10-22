@@ -295,4 +295,5 @@ html,body,#app,.view:not(.form),.view:not(.form) *{touch-action:none}
 .view.form,.view.form *{touch-action:pan-y}
 
 /* ===== Выбор голоса: список + «▶» в одну строку ===== */
+.lang-btns{margin-top:6px}.lang-btns button{flex:1}
 .vrow{align-items:center;flex-wrap:nowrap}.vrow select{margin:0;flex:1 1 auto;min-width:0}.vrow button.icon{flex:none}

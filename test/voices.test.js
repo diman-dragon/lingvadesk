@@ -7,7 +7,10 @@ import voiceKey from '../www/js/tts/voiceKey.js';
 import resolveVoice from '../www/js/tts/resolveVoice.js';
 import speakText from '../www/js/tts/speakText.js';
 import voicesFor from '../www/js/tts/voicesFor.js';
-import voiceLabel from '../www/js/tts/voiceLabel.js';
+import voiceLabels from '../www/js/tts/voiceLabels.js';
+import voiceGender from '../www/js/tts/voiceGender.js';
+import voiceRow from '../www/js/components/voiceRow.js';
+import langRow from '../www/js/components/langRow.js';
 import loadVoiceList from '../www/js/tts/loadVoiceList.js';
 import loadVoices from '../www/js/settings/loadVoices.js';
 import setVoice from '../www/js/actions/setVoice.js';
@@ -25,16 +28,44 @@ const VOICES = [
 ];
 test.beforeEach(() => { bridge.reset(); bridge.io.voices = VOICES; bridge.io.spoken = null; state.voices = {}; state.voiceList = null; Object.assign(state.prefs, { ttsRate: '1', ttsPitch: '1' }); });
 
-test('голоса языка: та же основа, точное совпадение первым, затем качество', () => {
-  assert.deepEqual(voicesFor(VOICES, 'en-US').map(v => v.name), ['en-us-x-iom-network', 'en-us-x-sfg#female_2-local', 'en-gb-x-rjs#male_1-local']);
+test('голоса языка: только локальные, той же основы, точное совпадение первым, затем качество', () => {
+  assert.deepEqual(voicesFor(VOICES, 'en-US').map(v => v.name), ['en-us-x-sfg#female_2-local', 'en-gb-x-rjs#male_1-local']);   // онлайн-голос скрыт
   assert.deepEqual(voicesFor(VOICES, 'de-DE').map(v => v.name), ['de-de-x-nfh-local']);
   assert.deepEqual(voicesFor(VOICES, 'ja-JP'), []);
+  assert.deepEqual(voicesFor(VOICES, 'en-US', 'en-us-x-iom-network').map(v => v.name)[0], 'en-us-x-iom-network');   // выбранный онлайн-голос не пропадает
 });
 
-test('подпись голоса понятна: язык, пол и номер, качество, онлайн', () => {
-  assert.equal(voiceLabel(VOICES[0]), 'en-GB · мужской 1 · высокое');
-  assert.equal(voiceLabel(VOICES[1]), 'en-US · женский 2');
-  assert.equal(voiceLabel(VOICES[2]), 'en-US · en-us-x-iom-network · высокое · онлайн');
+test('пол голоса и подписи: имя-ярлык стабильно, одинаковые различаются номером, без пола — имя Android', () => {
+  assert.deepEqual(VOICES.map(voiceGender), ['m', 'f', '', '']);
+  const a = voiceLabels(VOICES), b = voiceLabels([...VOICES].reverse());
+  assert.equal(a.get(VOICES[1].name), b.get(VOICES[1].name));                  // не зависит от порядка списка
+  assert.match(a.get(VOICES[0].name), /^[А-Яа-я]+ · en-GB · высокое$/);
+  assert.match(a.get(VOICES[2].name), /^en-us-x-iom · en-US · высокое · онлайн$/);
+  const many = Array.from({ length: 20 }, (_, i) => ({ name: `v${i}#female_1-local`, lang: 'ru-RU', quality: 300, offline: true }));
+  const labels = [...voiceLabels(many).values()];
+  assert.equal(new Set(labels).size, 20);                                    // имён 8, голосов 20 — повторы различаются номерами
+  assert.ok(labels.some(l => /^[А-Яа-я]+ 3 · ru-RU$/.test(l)));
+});
+
+test('строка выбора: группы «Женские» / «Мужские» / «Другие», выбранный голос отмечен; нет голосов — подсказка', () => {
+  state.voices[voiceKey('en-US', 0)] = 'en-us-x-sfg#female_2-local';
+  const html = voiceRow('en-US', SPEAKERS[0], voicesFor(VOICES, 'en-US'));
+  assert.match(html, /<optgroup label="Женские голоса">.*value="en-us-x-sfg#female_2-local" selected/);
+  assert.match(html, /<optgroup label="Мужские голоса">/);
+  assert.doesNotMatch(html, /Другие голоса|iom-network/);
+  assert.match(voiceRow('ja-JP', SPEAKERS[0], []), /Нет локальных голосов[^<]*«Языки»/);
+});
+
+test('карточка языка: голоса и статус пакета распознавания, кнопки скачать / проверить', () => {
+  const none = langRow('ru-RU', 0, 'download');
+  assert.match(none, /Локальных голосов нет/);
+  assert.match(none, /пакет можно скачать/);
+  assert.match(none, /data-act="installVoices"/);
+  assert.match(none, /data-act="checkSpeechLang" data-lang="ru-RU">Скачать пакет/);
+  const ok = langRow('en-US', 3, 'installed');
+  assert.match(ok, /Локальных голосов: 3/);
+  assert.match(ok, /установлен, работает офлайн/);
+  assert.match(ok, />Проверить</);
 });
 
 test('список голосов читается один раз (кэш), «Обновить» — заново; без движка — пустой', async () => {
