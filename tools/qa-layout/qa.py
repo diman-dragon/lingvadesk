@@ -19,7 +19,7 @@ CHECK = """
     if (r.bottom > vh+1 && !e.closest('.sheet-list') && !e.closest('.view.form')) out.push(['offscreen-y', path(e), Math.round(r.bottom), vh]);
     if (txt && e.scrollWidth > e.clientWidth+1 && cs.display!=='inline') out.push(['scroll-x', path(e), e.scrollWidth, e.clientWidth, (e.textContent||'').trim().slice(0,30)]);
     // clipped by overflow ancestor
-    if (txt && !e.closest('.sheet')) { let a = e.parentElement; while (a && a.id!=='app') { const ac=getComputedStyle(a); if (ac.overflow!=='visible' || ac.overflowX!=='visible' || ac.overflowY!=='visible') { const ar=a.getBoundingClientRect(); const scrolls = a.matches('.sheet-list,.view.form,.opts'); if (scrolls) break; if (!scrolls && (r.bottom>ar.bottom+1 || r.right>ar.right+1 || r.top<ar.top-1 || r.left<ar.left-1) && !a.matches('.pager')) { out.push(['clipped', path(e), path(a), Math.round(r.bottom), Math.round(ar.bottom), (e.textContent||'').trim().slice(0,30)]); break; } } a=a.parentElement; } }
+    if (txt && !e.closest('.sheet')) { let a = e.parentElement; while (a && a.id!=='app') { const ac=getComputedStyle(a); if (ac.overflow!=='visible' || ac.overflowX!=='visible' || ac.overflowY!=='visible') { const ar=a.getBoundingClientRect(); const scrolls = a.matches('.sheet-list,.view.form,.opts,.chat'); if (scrolls) break; if (!scrolls && (r.bottom>ar.bottom+1 || r.right>ar.right+1 || r.top<ar.top-1 || r.left<ar.left-1) && !a.matches('.pager')) { out.push(['clipped', path(e), path(a), Math.round(r.bottom), Math.round(ar.bottom), (e.textContent||'').trim().slice(0,30)]); break; } } a=a.parentElement; } }
     if (txt && (cs.overflow==='hidden') && e.scrollHeight > e.clientHeight+1) out.push(['scroll-y', path(e), e.scrollHeight, e.clientHeight]);
   }
   // pager pages: все ли элементы страницы внутри .pager
@@ -118,6 +118,18 @@ def run(vw, vh, font, shots):
             chk(f'quest-s{k}-answered')
             if page.locator('[data-act="questNext"]').count(): act('questNext')
         chk('quest-end')
+        # диалоги: примеры, настройка ролей, сцена, ваша реплика, итог
+        page.evaluate("async () => (await import('/js/actions/addSampleDialog.js')).default()"); page.wait_for_timeout(300)
+        act('goStudy'); act('openMode', id='dialog'); pages('dialogs-projects')
+        act('openProjectDecks', id=2); pages('dialogs-decks')
+        page.evaluate("async () => { const s = await import('/js/actions/startStudy.js'); const q = await import('/js/repo/listDeckStats.js'); const d = (await q.default()).find(x => x.kind === 'dialog'); await s.default({mode:'dialog', scope:'d:'+d.id}); }"); page.wait_for_timeout(400)
+        chk('dialog-setup')
+        act('dialogStart'); page.wait_for_timeout(500); chk('dialog-run')
+        for k in range(12):
+            if page.locator('[data-act="dialogRecord"]').count(): chk('dialog-you'); act('dialogNext')
+            elif page.locator('[data-act="dialogNext"]').count(): act('dialogNext')
+            page.wait_for_timeout(150)
+        chk('dialog-end')
         b.close()
     return probs, errs
 CONF = {(360,640,'m'),(360,640,'l'),(320,568,'m')}

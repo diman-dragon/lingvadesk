@@ -15,8 +15,9 @@ export default async function saveCard(d) {
   const id = state.nav.id, deckId = +readField('deck');
   const card = Object.fromEntries(CARD_FIELDS.map(f => [f.key, readField(f.id)]));
   if (!card.front || !card.back) return toast('Заполните слово и перевод');
+  const old = id ? await getCard(id) : null;
+  card.speaker = document.getElementById('spk') ? Number(readField('spk')) || 0 : old?.speaker ?? 0;
   if (id) {
-    const old = await getCard(id);
     await updateCard(id, card);
     refreshCard(state.session, id, card);
     if (old.deck_id !== deckId) await moveCard(id, deckId, await nextCardOrd(deckId));

@@ -58,5 +58,6 @@ Gradle wrapper создаст Android Studio; из консоли: `cd android &
 - `docs/ARCHITECTURE.md` — структура, модель данных, обучение, backup
 - `docs/CONVENTIONS.md` — правила кода (один файл — одна функция, без дублирования)
 - `docs/FORMATS.md` — форматы библиотеки, колоды и `.fcbak` (примеры: `examples/library.json`, `examples/deck.json`)
+- `docs/DIALOGS.md` — режим «Диалоги»: роли, голоса, формат текста и JSON (примеры: `examples/dialogs.json`, `examples/dialog-cafe.txt`)
 - `docs/UPDATES.md` — как обновляться поверх без потери данных
 - `docs/DECISIONS.md` — что взято из каждой версии проекта и как разрешены противоречия

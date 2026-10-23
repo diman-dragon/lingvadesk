@@ -20,6 +20,7 @@ export default async function settingsView() {
   const study = settingRow('Что показывать первым', prefControl('dir'), 'Что на лицевой стороне: слово, перевод или по-разному') +
     settingRow('Проверка', prefControl('check'), 'Переворот, выбор из вариантов или ввод ответа') +
     settingRow('Автоозвучка', prefControl('autoplay'), 'Произносить слово, когда оно появляется') +
+    settingRow('Перевод в диалогах', prefControl('dialogTr'), 'Показывать перевод под репликами сцены') +
     settingRow('Голоса и пакеты языков', '<div class="muted">Скачиваются и проверяются на странице «Языки»</div>');
   const limits = settingRow('Новых карточек в день', prefControl('newPerDay'), 'Сколько новых слов добавляет интервальное повторение за день') +
     settingRow('Карточек за сессию', prefControl('sessionMax'), 'Просроченные идут первыми, самые давние — раньше');

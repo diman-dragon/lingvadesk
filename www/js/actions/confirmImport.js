@@ -1,3 +1,4 @@
+import { DIALOG } from '../constants/DIALOG.js';
 import { state } from '../state/appState.js';
 import readField from '../dom/readField.js';
 import toast from '../dom/toast.js';
@@ -10,9 +11,9 @@ import go from '../nav/go.js';
 export default async function confirmImport() {
   const d = state.importDraft;
   if (!d) return;
-  const projectId = readField('project') ? +readField('project') : await findOrCreateProject('Импорт', guessTts(d.cards));
-  const deckId = await findOrCreateDeck(projectId, readField('name') || d.name);
-  const added = await addMissingCards(deckId, d.cards);
+  const projectId = readField('project') ? +readField('project') : await findOrCreateProject('Импорт', d.lang || guessTts(d.cards));
+  const kind = d.dialog ? DIALOG.kind : 'cards', deckId = await findOrCreateDeck(projectId, readField('name') || d.name, kind);
+  const added = await addMissingCards(deckId, d.cards, kind);
   state.importDraft = null;
   toast(`Добавлено карточек: ${added} из ${d.cards.length}`);
   state.nav = { v: 'library' };

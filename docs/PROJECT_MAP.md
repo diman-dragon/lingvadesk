@@ -20,6 +20,7 @@
 | «На слух» с вариантами | `study/makeQuiz` (listen → всегда `choice`), `views/listenFace`, `quizControls`, `actions/pick` |
 | Сессия учёбы | `study/*` (`openStudy`, `startSession`, `buildOrder`, `gradeCard`, `track*`, `makeQuiz`), `views/sessionView` + `studyFace/listenFace/speakFace` |
 | Алгоритм SRS | `srs/*` (`nextSrs`, `nextInterval`, `nextEase`, `inferGrade`, `calibrate`, `speechGrade`) |
+| Диалоги | `docs/DIALOGS.md`; ход сцены `dialog/*`, экраны `views/dialog*`, действия `actions/dialog*`, импорт `deckio/parseDialogText`, примеры `constants/SAMPLE_DIALOGS` + `examples/` |
 | Игры | категория: `views/gamesView` (`constants/GAMES`, `components/gameEntry`, `actions/openGameKind`); «Блиц» — `game/*`, `views/gameView`; «Квест» — `game/{newQuest,answerQuest,submitQuest,finishQuest,openQuest}`, `views/quest{View,Controls,Result}`, `components/trail*`, `actions/quest*`; таблица `games` (у квеста `scope` с префиксом `quest:`) |
 | Произношение | `actions/record` → `native/speechListen` → `speech/*.java`; `study/scoreSpeech`, `srs/speechGrade`, таблица `pronunciations` |
 | Статистика | `views/statsView` собирает данные → `stats/index.js` (12 параметров: today, streak, retention, learned, grades, modes, timing, decks, hard, forecast, speech, weak; каждый → `{icon,title,value,sub,detail}`) → элементы `entry` + окно `components/statSheet`; вычисления — `study/{retention,dayBars,forecastBars,gradeSplit,medianTimes,streaks}`, SQL — `repo/list*` |
@@ -47,6 +48,7 @@
 | `studyDecks` | studyDecksView | Учёба | область выбранного режима (`state.nav.mode`), сгруппировано по проектам: без `nav.project` — «Все колоды» + проекты (тап → `openProjectDecks`); с `nav.project` — «Весь проект» + колоды; тап по области → `pickScope` → `startStudy` (`all`/`p:<id>`/`d:<id>`) |
 | `session` | sessionView | Учёба | сама учёба (flip / выбор / ввод / на слух / произношение) |
 | `games` | gamesView | Учёба | категория «Игры»: Блиц, Квест (список/сетка, рекорды); тап → `studyDecks` с `mode: blitz\|quest` |
+| `dialog` | dialogView | Учёба | сцена диалога: настройка ролей → чат реплик с озвучкой → итог; `studyDecks` с `mode: dialog` показывает только колоды-диалоги |
 | `game` | gameView | Учёба | «Блиц» 60 с |
 | `quest` | questView | Учёба | «Квест»: тропинка с героем, 3 жизни, выбор / ввод |
 | `stats` | statsView | Статистика | 12 параметров списком/сеткой, тап → подробное окно (`state.sheet='stat:<n>'`) |
@@ -58,7 +60,7 @@
 - `state/appState.js`: `nav`, `stack`, `session`, `quiz`, `sheet` (режим открытого меню колод), `game`, `speech`, `importDraft`, `page/pager` (постраничный вывод), `prefs`.
 - `state.prefs` (из таблицы `settings`): `theme font anim autoplay dir layout check newPerDay sessionMax haptic`. `layout` = `list|grid` — **общий для библиотеки и учёбы**.
 - Рендер: `nav/render` → `views[v]()` → HTML-строка → `layoutPager()` делит `state.pager.items` на страницы по реальной высоте. Всё через делегирование: `events/dispatch` по `[data-act]`.
-- **SQLite `lingocards.db`, схема v4** (`android/.../db/Schema.java`, миграции `MigrateV2..V4`): `languages`(=проекты: name, tts) · `decks`(language_id) · `cards`(front, back, example, example_tr, ord, due, interval, ease, reps) · `settings`(key,value) · `reviews`(card_id, ts, grade, think, look, fresh, mode, hinted, plays) · `pronunciations` · `games`. Каскадное удаление. Сессия НЕ хранится — очередь строится из `cards` заново.
+- **SQLite `lingocards.db`, схема v5** (`android/.../db/Schema.java`, миграции `MigrateV2..V5`): `languages`(=проекты: name, tts) · `decks`(language_id, kind: cards|dialog) · `cards`(front, back, example, example_tr, ord, due, interval, ease, reps, speaker) · `settings`(key,value) · `reviews`(card_id, ts, grade, think, look, fresh, mode, hinted, plays) · `pronunciations` · `games`. Каскадное удаление. Сессия НЕ хранится — очередь строится из `cards` заново.
 - Область учёбы: `'all' | 'p:<id>' | 'd:<id>'` (`repo/scopeClause`).
 
 ## 5. Учёба в двух словах
@@ -76,8 +78,9 @@
 `docs/ARCHITECTURE.md` (подробно по экранам/учёбе/жестам) · `CONVENTIONS.md` · `FORMATS.md` (форматы файлов) · `UPDATES.md` · `DECISIONS.md` (слияние с LingoCards) · `CHANGELOG.md` (история по версиям).
 
 ## 9. Недавние изменения
-- **2.1.0** — голоса: только локальные, группы по полу, имена-ярлыки (`tts/{voiceGender,voiceLabels,voicesFor}`, `components/voiceRow`); страница настроек «Языки» (`views/langPage`, `components/langRow`, `actions/{installVoices,checkSpeechLang}`, Java `TtsInstall`, `tts/speechStatus`): скачивание голосов и пакетов распознавания из приложения.
-- **2.1.0** — «Квест»: тропинка с героем (`components/{trail,trailPoints}`, `dom/walkHero`, `QUEST.heroes/trail`; герой идёт к узлу после ответа — `quest.walking`).
+- **2.2.0** — диалоги: сцена = колода `kind='dialog'`, реплика = карточка с `speaker` 1…3 (БД v5, `MigrateV5`); режим «💬 Диалоги» (`dialog/*`, `views/dialog{View,Roles,Chat,Controls,Done}`, `actions/dialog*`, `state.dialog`): роли 1 и 2 озвучены голосами слотов 1 и 2, роль 3 — вы (микрофон + оценка); Java `TtsSay`/`TtsProgress` — `wait` (ответ при окончании реплики); импорт текста `A: фраза | перевод` (`deckio/parseDialogText`), примеры `examples/dialogs.json`, `dialog-cafe.txt`, `constants/SAMPLE_DIALOGS`, подробности — `docs/DIALOGS.md`.
+- **2.2.0** — голоса: только локальные, группы по полу, имена-ярлыки (`tts/{voiceGender,voiceLabels,voicesFor}`, `components/voiceRow`); страница настроек «Языки» (`views/langPage`, `components/langRow`, `actions/{installVoices,checkSpeechLang}`, Java `TtsInstall`, `tts/speechStatus`): скачивание голосов и пакетов распознавания из приложения.
+- **2.2.0** — «Квест»: тропинка с героем (`components/{trail,trailPoints}`, `dom/walkHero`, `QUEST.heroes/trail`; герой идёт к узлу после ответа — `quest.walking`).
 - **2.0.0** — голоса озвучки: страница настроек «Голос» (`views/voicePage`, `components/voiceRow`, `tts/*`, `actions/{setVoice,testVoice,refreshVoices}`), Java `TtsVoices` + голос/скорость/высота в `TtsSay`; выбор хранится как `voice:<язык>:<слот>` в `settings` (`state.voices`), слоты — `constants/SPEAKERS` (база под диалоги); `speakText(text, lang, slot)`.
 - **2.0.0** — игры в одной категории «Игры» (`views/gamesView`, `components/gameEntry`, `constants/GAMES`, `actions/openGameKind`; режим `game` на хабе → экран `games` → `studyDecks` с `mode: blitz|quest`) и новая игра «Квест» (`game/*Quest`, `views/quest*`, `constants/QUEST`, `state.quest`; рекорд — `bestScore('quest')`, префикс `quest:` в `games.scope`).
 - **2.0.0** — варианты ответа («На слух», игра): всегда сетка 2×2 фиксированной высоты, без столбца и прокрутки; текст каждого варианта уменьшается, если большой (`dom/fitOpts`, `components/optGrid`).

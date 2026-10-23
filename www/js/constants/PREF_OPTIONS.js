@@ -3,6 +3,7 @@ export const PREF_OPTIONS = {
   theme: [['auto', 'Системная'], ['light', 'Светлая'], ['dark', 'AMOLED']],
   font: [['s', 'Мелкий'], ['m', 'Средний'], ['l', 'Крупный']],
   anim: ONOFF,
+  dialogTr: ONOFF,
   haptic: ONOFF,
   autoplay: [['off', 'Выкл'], ['on', 'Вкл']],
   dir: [['fwd', 'Я → П'], ['rev', 'П → Я'], ['mix', 'Вперемешку']],

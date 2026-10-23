@@ -5,6 +5,6 @@ export default function parentOf(nav) {
   if (nav.v === 'cardForm') return { view: 'deck', params: { id: nav.deckId } };
   if (nav.v === 'games') return { view: 'study', params: {} };
   if (nav.v === 'studyDecks') return nav.mode === 'blitz' || nav.mode === 'quest' ? { view: 'games', params: {} } : { view: 'study', params: {} };
-  if (nav.v === 'session' || nav.v === 'game' || nav.v === 'quest') return nav.mode ? { view: 'studyDecks', params: { mode: nav.mode } } : { view: 'study', params: {} };
+  if (nav.v === 'session' || nav.v === 'game' || nav.v === 'quest' || nav.v === 'dialog') return nav.mode ? { view: 'studyDecks', params: { mode: nav.mode } } : { view: 'study', params: {} };
   return { view: 'library', params: {} };
 }

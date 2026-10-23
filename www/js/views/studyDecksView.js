@@ -1,5 +1,6 @@
 import { state } from '../state/appState.js';
 import { MODE_INFO } from '../constants/MODE_INFO.js';
+import { DIALOG } from '../constants/DIALOG.js';
 import { GAMES } from '../constants/GAMES.js';
 import listDeckStats from '../repo/listDeckStats.js';
 import loadLimits from '../study/loadLimits.js';
@@ -10,6 +11,7 @@ import backButton from '../components/backButton.js';
 import layoutToggle from '../components/layoutToggle.js';
 import deckEntry from '../components/deckEntry.js';
 import pagedList from '../components/pagedList.js';
+import button from '../components/button.js';
 import emptyState from '../components/emptyState.js';
 /**
  * Экран режима учёбы (нажатие на режим): колоды сгруппированы по проектам, список или сетка, как на главной «Учёбы».
@@ -18,9 +20,13 @@ import emptyState from '../components/emptyState.js';
  */
 export default async function studyDecksView() {
   const m = [...MODE_INFO, ...GAMES].find(x => x.mode === state.nav.mode), { project } = state.nav;
-  const decks = planInfo(await listDeckStats(), await loadLimits()).filter(d => Number(d.total));
+  const dialogs = state.nav.mode === 'dialog';
+  const decks = planInfo(await listDeckStats(), await loadLimits()).filter(d => Number(d.total) && (!dialogs || d.kind === DIALOG.kind));
   const group = groupProjects(decks).find(g => g.id === project);
   const head = header(group ? group.name : `${m.icon} ${m.title}`, { left: backButton('back'), right: layoutToggle() });
+  if (dialogs && !decks.length) {
+    return head + emptyState({ icon: '💬', title: 'Диалогов пока нет', text: 'Создайте колоду типа «Диалог» в библиотеке, импортируйте текст «A: фраза | перевод» или добавьте готовые примеры.', actions: button({ act: 'addSampleDialog', cls: 'p', label: 'Добавить пример' }) });
+  }
   if (!decks.length || (project && !group)) return head + emptyState({ icon: '🃏', title: 'Здесь пока нет карточек', text: 'Добавьте карточки в библиотеке.' });
   const items = group
     ? group.decks.map(d => deckEntry(d, 'pickScope', `d:${d.id}`))

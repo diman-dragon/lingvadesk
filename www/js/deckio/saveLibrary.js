@@ -7,7 +7,7 @@ export default async function saveLibrary(lib) {
   for (const p of lib.projects) {
     const projectId = await findOrCreateProject(p.name, p.tts);
     for (const d of p.decks) {
-      added += await addMissingCards(await findOrCreateDeck(projectId, d.name), d.cards);
+      added += await addMissingCards(await findOrCreateDeck(projectId, d.name, d.kind), d.cards, d.kind);
       decks++;
     }
   }

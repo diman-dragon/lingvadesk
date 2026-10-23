@@ -1,3 +1,4 @@
+import { DIALOG } from '../constants/DIALOG.js';
 import { MODE_INFO } from '../constants/MODE_INFO.js';
 import listDeckStats from '../repo/listDeckStats.js';
 import loadLimits from '../study/loadLimits.js';
@@ -27,7 +28,8 @@ export default async function studyHubView() {
   const info = planInfo(decks, lim), left = sum(info, d => d.left), fresh = sum(info, d => d.fresh);
   const stats = row(statCard(sum(info, d => Number(d.due)), 'к повторению') + statCard(fresh, 'новых') + statCard(today.n, 'сегодня') + statCard(today.current, 'дней подряд'), 'stats');
   const plan = left ? `По плану на сегодня: ${left}` : today.n ? '✓ Дневной план выполнен — можно учить дальше' : '✓ На сегодня ничего не запланировано';
-  const sums = { total, learned: total - sum(decks, d => Number(d.fresh)), left, late: sum(decks, d => Number(d.late)) };
-  const modes = pagedList(MODE_INFO.map(m => modeEntry(m, sums)));
+  const sumsOf = (ds, inf) => ({ total: sum(ds, d => Number(d.total)), learned: sum(ds, d => Number(d.total) - Number(d.fresh)), left: sum(inf, d => d.left), late: sum(ds, d => Number(d.late)) });
+  const dlg = d => d.kind === DIALOG.kind, sums = sumsOf(decks, info), dsums = sumsOf(decks.filter(dlg), info.filter(dlg));   // «Диалоги» считают только сцены
+  const modes = pagedList(MODE_INFO.map(m => modeEntry(m, m.mode === 'dialog' ? dsums : sums)));
   return top + stats + `<div class="plan${left ? '' : ' done'}">${plan}</div>${modes}`;
 }

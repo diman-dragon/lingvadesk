@@ -145,8 +145,8 @@ test('учёба: «Давай-ка поучим…» — режимы; нажа
   assert.match(page(), /Давай-ка поучим/);
   for (const t of ['к повторению', 'новых', 'сегодня', 'дней подряд', 'Интервальное повторение', 'Карточки', 'На слух', 'Игры', 'Проверка произношения', 'По плану на сегодня: 8']) assert.match(page(), new RegExp(t));
   assert.doesNotMatch(page(), /Обучение|Случайная колода|Что учим|Порядок карточек/);
-  assert.equal(count(/data-act="openMode"/), 5);
-  assert.equal(count(/class="sinfo"/), 5);                      // на каждом режиме: всего · изучено · сегодня
+  assert.equal(count(/data-act="openMode"/), 6);
+  assert.equal(count(/class="sinfo"/), 6);                      // на каждом режиме: всего · изучено · сегодня
   assert.match(page(), /всего <b>8<\/b>/);
   assert.match(page(), /изучено <b>0<\/b>/);
   assert.match(page(), /class="today lv1">сегодня <b>8<\/b>/);
@@ -206,15 +206,15 @@ test('карточка учёбы: 4 градации «сегодня» и кр
 
 test('учёба: режимы — список ⇄ сетка, как проекты и колоды', async () => {
   await press('goStudy');
-  assert.equal(state.pager.items.length, 5);                     // режимы выводятся страницами
-  assert.equal(count(/class="item"/), 5);
+  assert.equal(state.pager.items.length, 6);                     // режимы выводятся страницами
+  assert.equal(count(/class="item"/), 6);
   assert.match(app.innerHTML, /<header>.*data-act="toggleLayout"/);
   await press('toggleLayout');
   assert.match(page(), /class="page grid /);
-  assert.equal(count(/class="gtile"/), 5);
-  assert.equal(count(/data-act="openMode"/), 5);
+  assert.equal(count(/class="gtile"/), 6);
+  assert.equal(count(/data-act="openMode"/), 6);
   await press('toggleLayout');
-  assert.equal(count(/class="item"/), 5);
+  assert.equal(count(/class="item"/), 6);
 });
 
 test('порядок карточек в учёбе случайный (не по алфавиту / не по порядку колоды)', async () => {
@@ -890,4 +890,51 @@ test('игры: категория «Игры» → Блиц и Квест → �
   assert.equal(state.nav.v, 'games');
   await press('back');
   assert.equal(state.nav.v, 'study');
+});
+
+test('диалоги: пример → сцена → роли → ход с голосами → ваша реплика с микрофоном → итог', async () => {
+  const { DIALOG } = await import('../www/js/constants/DIALOG.js');
+  const pause = DIALOG.pauseMs;
+  DIALOG.pauseMs = 0;
+  try {
+    bridge.reset();
+    bridge.io.said = [];
+    await press('goStudy');
+    await press('openMode', { id: 'dialog' });
+    assert.match(page(), /Диалогов пока нет/);
+    await press('addSampleDialog');
+    assert.equal(count(/data-act="openProjectDecks"/), 2);                       // English и Deutsch
+    await press('openProjectDecks', { id: bridge.db.prepare("SELECT id FROM languages WHERE name='English'").get().id });
+    await press('pickScope', { id: `d:${bridge.db.prepare("SELECT id FROM decks WHERE name LIKE '%кафе%'").get().id}` });
+    assert.deepEqual([state.nav.v, state.dialog.phase, state.dialog.you], ['dialog', 'setup', 3]);
+    assert.match(page(), /Кто вы\?/);
+    assert.match(page(), /ваша реплика/);
+    await press('dialogRole', { r: 0 });                                         // только слушать: роль 3 тоже озвучена
+    await press('dialogStart');
+    assert.equal(state.dialog.phase, 'done');
+    assert.equal(bridge.io.said.length, state.dialog.lines.length);
+    assert.ok(bridge.io.said.every(a => a.wait === true && a.lang === 'en-US'));
+    assert.match(page(), /Сцена закончена/);
+    await press('dialogSetup');
+    await press('dialogRole', { r: 3 });
+    bridge.io.said = [];
+    await press('dialogStart');                                                  // ждёт вашу первую реплику
+    assert.deepEqual([state.dialog.phase, state.dialog.waiting, state.dialog.i], ['run', true, 1]);
+    assert.equal(bridge.io.said.length, 1);                                      // первая реплика роли 1 озвучена
+    assert.match(page(), /Ваша реплика — скажите её вслух/);
+    assert.match(page(), /data-act="dialogRecord"/);
+    bridge.io.heard = { text: 'Hello! Can I have a latte, please?', confidence: -1, alternatives: [] };
+    await press('dialogRecord');
+    assert.equal(state.dialog.heard.score, 1);
+    assert.match(page(), /100%/);
+    await press('dialogNext');                                                   // сохранить и идти дальше
+    assert.equal(state.dialog.results.length, 1);
+    bridge.io.heard = { text: 'xx', confidence: -1, alternatives: [] };
+    for (let n = 0; n < 5 && state.dialog.phase === 'run'; n++) await press('dialogNext');   // остальные свои реплики пропускаем
+    assert.equal(state.dialog.phase, 'done');
+    assert.equal(bridge.db.prepare("SELECT COUNT(*) n FROM reviews WHERE mode='dialog'").get().n, 1);
+    assert.equal(bridge.db.prepare('SELECT COUNT(*) n FROM pronunciations').get().n, 1);
+    await press('back');
+    assert.equal(state.nav.v, 'studyDecks');
+  } finally { DIALOG.pauseMs = pause; }
 });
